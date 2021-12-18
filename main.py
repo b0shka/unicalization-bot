@@ -36,6 +36,11 @@ async def convet_photo(message: types.Message):
 	await func.unicalization_photo(message)
 
 
+@dp.message_handler(content_types=["video"])
+async def convet_photo(message: types.Message):
+	await func.unicalization_video(message)
+
+
 @dp.message_handler(content_types=["text"])
 async def answer_message(message: types.Message):
 	try:
