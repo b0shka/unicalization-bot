@@ -33,12 +33,44 @@ async def start(message: types.Message):
 
 @dp.message_handler(content_types=["photo"])
 async def convet_photo(message: types.Message):
-	await func.unicalization_photo(message)
+	result_change = await db_sql.change_status_unicalized(message.from_user.id, 1)
+
+	if result_change == 1:
+		count_ = await db_sql.get_count_stack()
+		print(count_)
+		
+		if type(count_) == int:
+			if count_ == 0:
+				#await func.unicalization_photo(message)
+				await asyncio.create_task(func.unicalization_photo(message))
+			else:
+				await message.answer(f"Выше место в очереди: {count_+1}")
+
+		else:
+			await message.answer(ERROR_SERVER_MESSAGE)
+	else:
+		await message.asnwer(ERROR_SERVER_MESSAGE)
 
 
 @dp.message_handler(content_types=["video"])
 async def convet_photo(message: types.Message):
-	await func.unicalization_video(message)
+	result_change = await db_sql.change_status_unicalized(message.from_user.id, 1)
+
+	if result_change == 1:
+		count_ = await db_sql.get_count_stack()
+		print(count_)
+
+		if type(count_) == int:
+			if count_ == 0:
+				#await func.unicalization_video(message)
+				await asyncio.create_task(func.unicalization_video(message))
+			else:
+				await message.answer(f"Выше место в очереди: {count_+1}")
+
+		else:
+			await message.answer(ERROR_SERVER_MESSAGE)
+	else:
+		await message.answer(ERROR_SERVER_MESSAGE)
 
 
 @dp.message_handler(content_types=["text"])

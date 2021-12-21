@@ -31,6 +31,17 @@ class FunctionsBot:
             await self.send_programmer_error(error)
 
 
+    async def download_file(self, message, type_document):
+        try:
+            if type_document == 'photo':
+                pass
+            else:
+                pass
+        except Exception as error:
+            logger.error(error)
+            print(f"[ERROR] {error}")
+
+
     async def unicalization_photo(self, message):
         try:
             file_info = await bot.get_file(message.photo[-1].file_id)
@@ -280,6 +291,17 @@ class FunctionsBot:
             logger.error(error)
             await self.send_programmer_error(error)
             return 0
+
+
+    async def uncalizing(self):
+        try:
+            users = await self.db_sql.get_users_unicalizing()
+
+            if type(users) == tuple and len(users) > 0:
+                pass
+        except Exception as error:
+            logger.error(error)
+            print(f"[ERROR] {error}")
 
 
     async def speed_change(self, path):

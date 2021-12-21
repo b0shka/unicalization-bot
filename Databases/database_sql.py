@@ -49,6 +49,7 @@ class DatabaseSQL:
 							username VARCHAR(255),
 							first_name VARCHAR(50) NOT NULL,
 							last_name VARCHAR(100),
+							status_unicalizing INTEGER DEFAULT 0,
 							time DATETIME DEFAULT CURRENT_TIMESTAMP);""")
 			self.db.commit()
 			logger.info(f'Создана таблица {TABLE_USERS} в БД')
@@ -93,6 +94,104 @@ class DatabaseSQL:
 			elif error.errno == ERROR_LOST_CONNECTION_MYSQL:
 				self.connect_db()
 				await self.add_user(user)
+
+			else:
+				logger.error(error)
+				return error
+
+		except Exception as error:
+			logger.error(error)
+			return error
+
+
+	async def change_status_unicalized(self, user_id: int, status: int):
+		try:
+			self.sql.execute(f"UPDATE {TABLE_USERS} SET status_unicalizing={status} WHERE user_id={user_id};")
+			self.db.commit()
+
+			return 1
+
+		except mysql.connector.Error as error:
+			if error.errno == ERROR_NOT_EXISTS_TABLE:
+				result_create = self.create_tables()
+				if result_create == 1:
+					await self.change_status_unicalized(user_id, status)
+				else:
+					return result_create
+
+			elif error.errno == ERROR_CONNECT_MYSQL:
+				logger.error(f"Connection to MYSQL: {error}")
+				return error
+
+			elif error.errno == ERROR_LOST_CONNECTION_MYSQL:
+				self.connect_db()
+				await self.change_status_unicalized(user_id, status)
+
+			else:
+				logger.error(error)
+				return error
+
+		except Exception as error:
+			logger.error(error)
+			return error
+
+
+	async def get_count_stack(self):
+		try:
+			self.sql.execute(f"SELECT COUNT(*) FROM {TABLE_USERS} WHERE status_unicalizing=1;")
+			count_ = self.sql.fetchone()
+
+			if count != None:
+				return count_[0]
+			return count_
+
+		except mysql.connector.Error as error:
+			if error.errno == ERROR_NOT_EXISTS_TABLE:
+				result_create = self.create_tables()
+				if result_create == 1:
+					await self.get_count_stack()
+				else:
+					return result_create
+
+			elif error.errno == ERROR_CONNECT_MYSQL:
+				logger.error(f"Connection to MYSQL: {error}")
+				return error
+
+			elif error.errno == ERROR_LOST_CONNECTION_MYSQL:
+				self.connect_db()
+				await self.get_count_stack()
+
+			else:
+				logger.error(error)
+				return error
+
+		except Exception as error:
+			logger.error(error)
+			return error
+
+
+	async def get_users_unicalizing(self):
+		try:
+			self.sql.execute(f"SELECT * FROM {TABLE_USERS} WHERE status_unicalizing=1;")
+			users = self.sql.fetchall()
+
+			return users
+
+		except mysql.connector.Error as error:
+			if error.errno == ERROR_NOT_EXISTS_TABLE:
+				result_create = self.create_tables()
+				if result_create == 1:
+					await self.get_users_unicalizing()
+				else:
+					return result_create
+
+			elif error.errno == ERROR_CONNECT_MYSQL:
+				logger.error(f"Connection to MYSQL: {error}")
+				return error
+
+			elif error.errno == ERROR_LOST_CONNECTION_MYSQL:
+				self.connect_db()
+				await self.get_users_unicalizing()
 
 			else:
 				logger.error(error)

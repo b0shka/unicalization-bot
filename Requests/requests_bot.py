@@ -16,7 +16,7 @@ class RequestsBot:
     async def result_message(self, search, message):
         try:
             if search == "уникализоровать":
-                pass
+                await message.answer("Скиньте фотографию или видео")
 
             else:
                 await self.func_bot.else_answer(message)
