@@ -1,92 +1,84 @@
+from threading import Thread
+from telebot import types
 from Variables.error_messages import ERROR_SERVER_MESSAGE
-from aiogram import executor, types
 from Variables.config import *
 from Variables.text_messages import *
 from Databases.database_sql import DatabaseSQL
 from Requests.requests_bot import RequestsBot
 from Requests.functions import FunctionsBot
+from Requests.unicalizing import Unicalizing
 
 
 db_sql = DatabaseSQL()
 req_bot = RequestsBot()
 func = FunctionsBot()
+unic = Unicalizing()
 
+unicalizing = Thread(target=unic.uncalizing)
+unicalizing.start()
 
-@dp.message_handler(commands=['start'])
+@bot.message_handler(commands=['start'])
 async def start(message: types.Message):
 	try:
 		markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-		unic = types.KeyboardButton('Уникализоровать')
+		unic = types.KeyboardButton('Уникализировать')
 		markup.add(unic)
 
-		await message.answer(START_MESSAGE, reply_markup=markup)
+		bot.send_message(START_MESSAGE, reply_markup=markup)
 
 		user = get_data_user(message)
 		if user != 0:
-			result_add = await db_sql.add_user(user)
-			if result_add != 1:
-				await func.send_programmer_error(result_add)
+			result_add = db_sql.add_user(user)
+			if result_add != 1 and result_add != None:
+				func.send_programmer_error(result_add)
 	except Exception as error:
 		logger.error(error)
-		await func.send_programmer_error(error)
+		func.send_programmer_error(error)
 
 
-@dp.message_handler(content_types=["photo"])
-async def convet_photo(message: types.Message):
-	result_change = await db_sql.change_status_unicalized(message.from_user.id, 1)
+@bot.message_handler(content_types=["photo"])
+def convet_photo(message: types.Message):
+	bot.send_message(message.from_user.id, "Обработка фотографии началось")
+	func.unicalization_photo(message)
 
-	if result_change == 1:
-		count_ = await db_sql.get_count_stack()
-		print(count_)
-		
-		if type(count_) == int:
-			if count_ == 0:
-				#await func.unicalization_photo(message)
-				await asyncio.create_task(func.unicalization_photo(message))
+
+@bot.message_handler(content_types=["video"])
+def convet_photo(message: types.Message):
+	status_user = db_sql.check_status_using(message.from_user.id)
+
+	if status_user == 0:
+		result_add = db_sql.add_file_id(message.from_user.id, message.video.file_id)
+
+		if result_add == 1:
+			count_ = len(db_sql.get_users_using())
+			result_change = db_sql.change_status_using(message.from_user.id, 1)
+
+			if result_change == 1:
+				bot.send_message(message.from_user.id, f"Выше место в очереди: {count_+1}")
 			else:
-				await message.answer(f"Выше место в очереди: {count_+1}")
-
+				bot.send_message(message.from_user.id, ERROR_SERVER_MESSAGE)
 		else:
-			await message.answer(ERROR_SERVER_MESSAGE)
+			bot.send_message(message.from_user.id, ERROR_SERVER_MESSAGE)
+	elif status_user == 1:
+		bot.send_message(message.from_user.id, "Вы уже стоите в очереди")
 	else:
-		await message.asnwer(ERROR_SERVER_MESSAGE)
+		bot.send_message(message.from_user.id, ERROR_SERVER_MESSAGE)
 
 
-@dp.message_handler(content_types=["video"])
-async def convet_photo(message: types.Message):
-	result_change = await db_sql.change_status_unicalized(message.from_user.id, 1)
-
-	if result_change == 1:
-		count_ = await db_sql.get_count_stack()
-		print(count_)
-
-		if type(count_) == int:
-			if count_ == 0:
-				#await func.unicalization_video(message)
-				await asyncio.create_task(func.unicalization_video(message))
-			else:
-				await message.answer(f"Выше место в очереди: {count_+1}")
-
-		else:
-			await message.answer(ERROR_SERVER_MESSAGE)
-	else:
-		await message.answer(ERROR_SERVER_MESSAGE)
-
-
-@dp.message_handler(content_types=["text"])
-async def answer_message(message: types.Message):
+@bot.message_handler(content_types=["text"])
+def answer_message(message: types.Message):
 	try:
 		search = message.text.lower()
-		await req_bot.result_message(search, message)
+		req_bot.result_message(search, message)
 			
 		user = get_data_user(message)
 		if user != 0:
-			result_add = await db_sql.add_user(user)
-			if result_add != 1:
-				await func.send_programmer_error(result_add)
+			result_add = db_sql.add_user(user)
+			if result_add != 1 and result_add != None:
+				func.send_programmer_error(result_add)
 	except Exception as error:
 		logger.error(error)
-		await func.send_programmer_error(error)
+		func.send_programmer_error(error)
 	
     
 def get_data_user(message):
@@ -106,4 +98,4 @@ def get_data_user(message):
 
 
 if __name__ == '__main__':
-	executor.start_polling(dp, skip_updates=True)
+	bot.polling(none_stop=True)

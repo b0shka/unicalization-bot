@@ -1,5 +1,5 @@
 import os
-import cv2     
+import cv2
 import skimage
 from random import choice
 from PIL import Image, ImageEnhance
@@ -21,107 +21,101 @@ class FunctionsBot:
             logger.error(error)
 
 
-    async def else_answer(self, message):
+    def else_answer(self, user_id):
         try:
             choice_text = ('Меня еще этому не научили', 'Я не знаю про что вы', 'У меня нет ответа', 'Я еще этого не умею', 'Беспонятия про что вы')
-            await message.answer(choice(choice_text))
+            bot.send_message(user_id, choice(choice_text))
         except Exception as error:
-            await message.answer(ERROR_SERVER_MESSAGE)
+            bot.send_message(user_id, ERROR_SERVER_MESSAGE)
             logger.error(error)
-            await self.send_programmer_error(error)
+            self.send_programmer_error(error)
 
 
-    async def download_file(self, message, type_document):
+    def unicalization_photo(self, message):
         try:
-            if type_document == 'photo':
-                pass
-            else:
-                pass
-        except Exception as error:
-            logger.error(error)
-            print(f"[ERROR] {error}")
+            file_info = bot.get_file(message.photo[-1].file_id)
 
-
-    async def unicalization_photo(self, message):
-        try:
-            file_info = await bot.get_file(message.photo[-1].file_id)
-
-            type_photo = file_info['file_path'].split(".")[-1]
+            type_photo = file_info.file_path.split(".")[-1]
             name_img = f'{PATH_TO_BOT}/img/img_{message.from_user.id}'
             path_img = f'{name_img}.{type_photo}'
 
-            await bot.download_file(file_info.file_path, path_img)
+            downloaded_file = bot.download_file(file_info.file_path)
+            with open(path_img, 'wb') as new_file:
+                new_file.write(downloaded_file)
 
-            result_clean = await self.clean_metadata_photo(path_img)
+            result_clean = self.clean_metadata_photo(path_img)
             if result_clean != 1:
-                await self.send_programmer_error(result_clean)
+                self.send_programmer_error(result_clean)
 
-            result_noise = await self.noise_photo(path_img)
+            result_noise = self.noise_photo(path_img)
             if result_noise != 1:
-                await self.send_programmer_error(result_noise)
+                self.send_programmer_error(result_noise)
 
-            #result_blur = await self.gaussianBlur_photo(f'{name_img}_gaussian.{type_photo}')
-            #result_median = await self.medianBlur_photo(f'{name_img}_gaussian.{type_photo}')
-            result_blur = await self.gaussianBlur_photo(f'{name_img}_salt.{type_photo}')
+            #result_blur = self.gaussianBlur_photo(f'{name_img}_gaussian.{type_photo}')
+            result_blur = self.medianBlur_photo(f'{name_img}_gaussian.{type_photo}')
+            #result_blur = self.gaussianBlur_photo(f'{name_img}_salt.{type_photo}')
             if result_blur != 1:
-                await self.send_programmer_error(result_blur)
+                self.send_programmer_error(result_blur)
 
-            #result_contrast = await self.change_contrast_photo(f'{name_img}_gaussian_blur.{type_photo}')
-            #result_contrast = await self.change_contrast_photo(f'{name_img}_gaussian_median.{type_photo}')
-            result_contrast = await self.change_contrast_photo(f'{name_img}_salt_blur.{type_photo}')
+            #result_contrast = self.change_contrast_photo(f'{name_img}_gaussian_blur.{type_photo}')
+            result_contrast = self.change_contrast_photo(f'{name_img}_gaussian_median.{type_photo}')
+            #result_contrast = self.change_contrast_photo(f'{name_img}_salt_blur.{type_photo}')
             if result_contrast != 1:
-                await self.send_programmer_error(result_contrast)
+                self.send_programmer_error(result_contrast)
 
             #photo = open(f'{name_img}_gaussian_blur_contrast.{type_photo}', 'rb')
-            #photo = open(f'{name_img}_gaussian_median_contrast.{type_photo}', 'rb')
-            photo = open(f'{name_img}_salt_blur_contrast.{type_photo}', 'rb')
-            await bot.send_photo(message.from_user.id, photo)
+            photo = open(f'{name_img}_gaussian_median_contrast.{type_photo}', 'rb')
+            #photo = open(f'{name_img}_salt_blur_contrast.{type_photo}', 'rb')
+            bot.send_photo(message.from_user.id, photo)
 
             os.remove(path_img)
-            #os.remove(f'{name_img}_gaussian.{type_photo}')
-            os.remove(f'{name_img}_salt.{type_photo}')
+            os.remove(f'{name_img}_gaussian.{type_photo}')
+            #os.remove(f'{name_img}_salt.{type_photo}')
 
             #os.remove(f'{name_img}_gaussian_blur.{type_photo}')
             #os.remove(f'{name_img}_gaussian_blur_contrast.{type_photo}')
 
-            #os.remove(f'{name_img}_gaussian_median.{type_photo}')
-            #os.remove(f'{name_img}_gaussian_median_contrast.{type_photo}')
+            os.remove(f'{name_img}_gaussian_median.{type_photo}')
+            os.remove(f'{name_img}_gaussian_median_contrast.{type_photo}')
 
-            os.remove(f'{name_img}_salt_blur.{type_photo}')
-            os.remove(f'{name_img}_salt_blur_contrast.{type_photo}')
+            #os.remove(f'{name_img}_salt_blur.{type_photo}')
+            #os.remove(f'{name_img}_salt_blur_contrast.{type_photo}')
         except Exception as error:
-            await message.answer(ERROR_SERVER_MESSAGE)
+            bot.send_message(message.from_user.id, ERROR_SERVER_MESSAGE)
             logger.error(error)
-            await self.send_programmer_error(error)
+            self.send_programmer_error(error)
 
 
-    async def unicalization_video(self, message):
+    def unicalization_video(self, file_id, user_id):
         try:
-            file_info = await bot.get_file(message.video.file_id)
+            bot.send_message(user_id, "Обработка вашего видео началась")
+            file_info = bot.get_file(file_id)
 
-            type_video = file_info['file_path'].split(".")[-1]
-            name_video = f'{PATH_TO_BOT}/videos/video_{message.from_user.id}'
+            type_video = file_info.file_path.split(".")[-1]
+            name_video = f'{PATH_TO_BOT}/videos/video_{user_id}'
             path_video = f'{name_video}.{type_video}'
 
-            await bot.download_file(file_info.file_path, path_video)
+            downloaded_file = bot.download_file(file_info.file_path)
+            with open(path_video, 'wb') as new_file:
+                new_file.write(downloaded_file)
 
-            result_clean = await self.clean_metadata_video(path_video)
+            result_clean = self.clean_metadata_video(path_video)
             if result_clean != 1:
-                await self.send_programmer_error(result_clean)
+                self.send_programmer_error(result_clean)
 
-            result_blur = await self.gaussianBlur_video(f'{name_video}_clean.{type_video}')
+            result_blur = self.gaussianBlur_video(f'{name_video}_clean.{type_video}')
             if result_blur != 1:
-                await self.send_programmer_error(result_blur)
+                self.send_programmer_error(result_blur)
 
-            result_speed = await self.speed_change(f'{name_video}_clean.{type_video}')
+            result_speed = self.speed_change(f'{name_video}_clean.{type_video}')
             if result_speed != 1:
-                await self.send_programmer_error(result_speed)
+                self.send_programmer_error(result_speed)
 
             clip = moviepy.VideoFileClip(f"{name_video}_clean_speed.{type_video}")
             clip.write_videofile(f"{name_video}_result.{type_video}")
 
             with open(f'{name_video}_result.{type_video}', 'rb') as video:
-                await message.answer_video(video)
+                bot.send_video(user_id, video)
 
             os.remove(path_video)
             os.remove(f'{name_video}_clean.{type_video}')
@@ -130,13 +124,15 @@ class FunctionsBot:
             os.remove(f'{name_video}_clean.wav')
             os.remove(f'{name_video}_clean_speed.mp3')
             os.remove(f'{name_video}_result.{type_video}')
+
+            self.db_sql.change_status_using(user_id, 0)
         except Exception as error:
-            await message.answer(ERROR_SERVER_MESSAGE)
+            bot.send_message(user_id, ERROR_SERVER_MESSAGE)
             logger.error(error)
-            await self.send_programmer_error(error)
+            self.send_programmer_error(error)
 
 
-    async def clean_metadata_photo(self, path):
+    def clean_metadata_photo(self, path):
         try:
             image_file = open(path, mode="rb")
             image = Image.open(image_file)
@@ -150,11 +146,11 @@ class FunctionsBot:
             return 1
         except Exception as error:
             logger.error(error)
-            await self.send_programmer_error(error)
+            self.send_programmer_error(error)
             return 0
 
 
-    async def clean_metadata_video(self, path):
+    def clean_metadata_video(self, path):
         try:
             name_video = path.split(".")[0]
             type_video = path.split(".")[-1]
@@ -163,29 +159,29 @@ class FunctionsBot:
             return 1
         except Exception as error:
             logger.error(error)
-            await self.send_programmer_error(error)
+            self.send_programmer_error(error)
             return 0
 
 
-    async def noise_photo(self, path):
+    def noise_photo(self, path):
         try:
             img = skimage.io.imread(path)
             img_name = path.split(".")[0]
             img_type = path.split(".")[1]
 
-            #gauss_noiseImg = skimage.util.random_noise(img, mode='gaussian', seed=None, clip=True)
-            #skimage.io.imsave(f'{img_name}_gaussian.{img_type}', gauss_noiseImg)
+            gauss_noiseImg = skimage.util.random_noise(img, mode='gaussian', seed=None, clip=True)
+            skimage.io.imsave(f'{img_name}_gaussian.{img_type}', gauss_noiseImg)
 
-            salt_noiseImg = skimage.util.random_noise(img, mode='salt', seed=None, clip=True)
-            skimage.io.imsave(f'{img_name}_salt.{img_type}', salt_noiseImg)
+            #salt_noiseImg = skimage.util.random_noise(img, mode='salt', seed=None, clip=True)
+            #skimage.io.imsave(f'{img_name}_salt.{img_type}', salt_noiseImg)
             return 1
         except Exception as error:
             logger.error(error)
-            await self.send_programmer_error(error)
+            self.send_programmer_error(error)
             return 0
 
 
-    async def gaussianBlur_photo(self, path):
+    def gaussianBlur_photo(self, path):
         try:
             img = cv2.imread(path)
             img_name = path.split(".")[0]
@@ -197,11 +193,11 @@ class FunctionsBot:
             return 1
         except Exception as error:
             logger.error(error)
-            await self.send_programmer_error(error)
+            self.send_programmer_error(error)
             return 0
 
 
-    async def gaussianBlur_video(self, path):
+    def gaussianBlur_video(self, path):
         try:
             name_audio = path.split(".")[0]
             type_video = path.split(".")[-1]
@@ -246,11 +242,11 @@ class FunctionsBot:
             return 1
         except Exception as error:
             logger.error(error)
-            await self.send_programmer_error(error)
+            self.send_programmer_error(error)
             return 0
 
 
-    async def medianBlur_photo(self, path):
+    def medianBlur_photo(self, path):
         try:
             img = cv2.imread(path)
             img_name = path.split(".")[0]
@@ -262,11 +258,11 @@ class FunctionsBot:
             return 1
         except Exception as error:
             logger.error(error)
-            await self.send_programmer_error(error)
+            self.send_programmer_error(error)
             return 0
 
 
-    async def change_contrast_photo(self, path):
+    def change_contrast_photo(self, path):
         try:
             img = Image.open(path)
             img_name = path.split(".")[0]
@@ -289,22 +285,11 @@ class FunctionsBot:
             return 1
         except Exception as error:
             logger.error(error)
-            await self.send_programmer_error(error)
+            self.send_programmer_error(error)
             return 0
 
 
-    async def uncalizing(self):
-        try:
-            users = await self.db_sql.get_users_unicalizing()
-
-            if type(users) == tuple and len(users) > 0:
-                pass
-        except Exception as error:
-            logger.error(error)
-            print(f"[ERROR] {error}")
-
-
-    async def speed_change(self, path):
+    def speed_change(self, path):
         try:
             name_audio = path.split(".")[0]
             type_video = path.split(".")[-1]
@@ -327,14 +312,14 @@ class FunctionsBot:
             return 1
         except Exception as error:
             logger.error(error)
-            await self.send_programmer_error(error)
+            self.send_programmer_error(error)
             return 0
 
 
-    async def send_programmer_error(self, error):
+    def send_programmer_error(self, error):
         try:
             message_error = f"[ERROR] {error}"
-            await bot.send_message(PROGRAMMER_ID, message_error)
-            await bot.send_document(PROGRAMMER_ID, open(PATH_TO_LOGS, 'rb'))
+            bot.send_message(PROGRAMMER_ID, message_error)
+            bot.send_document(PROGRAMMER_ID, open(PATH_TO_LOGS, 'rb'))
         except Exception as error:
             logger.error(error)

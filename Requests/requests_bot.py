@@ -13,15 +13,15 @@ class RequestsBot:
         except Exception as error:
             logger.error(error)
 
-    async def result_message(self, search, message):
+    def result_message(self, search, message):
         try:
-            if search == "уникализоровать":
-                await message.answer("Скиньте фотографию или видео")
+            if search == "уникализировать":
+                bot.send_message(message.from_user.id, "Скиньте фотографию или видео")
 
             else:
-                await self.func_bot.else_answer(message)
+                self.func_bot.else_answer(message.from_user.id)
 
         except Exception as error:
-            await message.answer(ERROR_SERVER_MESSAGE)
+            bot.send_message(message.from_user.id, ERROR_SERVER_MESSAGE)
             logger.error(error)
-            await self.func_bot.send_programmer_error(error)
+            self.func_bot.send_programmer_error(error)
