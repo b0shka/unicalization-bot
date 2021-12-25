@@ -18,19 +18,45 @@ unicalizing = Thread(target=unic.uncalizing)
 unicalizing.start()
 
 @bot.message_handler(commands=['start'])
-async def start(message: types.Message):
+def start(message: types.Message):
 	try:
 		markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
 		unic = types.KeyboardButton('Уникализировать')
 		markup.add(unic)
 
-		bot.send_message(START_MESSAGE, reply_markup=markup)
+		bot.send_message(message.from_user.id, START_MESSAGE, reply_markup=markup)
 
 		user = get_data_user(message)
 		if user != 0:
 			result_add = db_sql.add_user(user)
 			if result_add != 1 and result_add != None:
 				func.send_programmer_error(result_add)
+	except Exception as error:
+		logger.error(error)
+		func.send_programmer_error(error)
+
+
+@bot.message_handler(commands=['panel'])
+def panel(message: types.Message):
+	try:
+		if message.from_user.id in admins:
+			markup_inline = types.InlineKeyboardMarkup()
+			statistic = types.InlineKeyboardButton(text = 'Статистика', callback_data = 'statistic')
+			mailing = types.InlineKeyboardButton(text = 'Рассылка', callback_data = 'mailing')
+			logs = types.InlineKeyboardButton(text = 'Скинуть logs', callback_data = 'logs')
+
+			markup_inline.add(statistic)
+			markup_inline.add(mailing)
+			markup_inline.add(logs)
+			bot.send_message(message.from_user.id, 'Админ панель', reply_markup=markup_inline)
+		else:
+			req_bot.result_message(message.text, message)
+
+			user = get_data_user(message)
+			if user != 0:
+				result_add = db_sql.add_user(user)
+				if result_add != 1 and result_add != None:
+					func.send_programmer_error(result_add)
 	except Exception as error:
 		logger.error(error)
 		func.send_programmer_error(error)

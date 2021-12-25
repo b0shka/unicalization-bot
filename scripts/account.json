@@ -1,0 +1,12 @@
+{
+  "type": "service_account",
+  "project_id": "arcane-transit-336115",
+  "private_key_id": "fa2d2b67af8826924aa6c96c7ca6618cedc1640e",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCvOtlkkcIOaMVI\n9vF+kGZrcXTa8IVMNoVs/FZemuRyGf9qxltvu8lKaWc98FWf6c7m4QBo+r3oofUu\ncm/DsZLk8q8+hX5h8rpt0IbZEqMksdvSiDw+F9dyWPOTnnzpFpSKSJTjEwk7cYJk\n7+b1iwkZGP73K50+rCzsQoKz4Ulrji0ERhvfDhq3TNWGlBpj5sy19rVrcbXTyYey\nPrUoepel2Gjg2LtPT50mm4SP1MhWm+shdBk0TKcpivgYOwzSYvGl08y+cr6EQquu\ncvOrdpDsbovUkfuqEglil0qIfs9p69TRM3Z23ze5lNobGzXKozUn7FxfYJE6vxx2\neSO64z2tAgMBAAECggEAHnDRvTfZB1nKE//aOgtpz3Z5P2OTNIcwLJu1gV/VGcFM\nbscgsUtlD4k6BzeOGGasq80gnhwZC6W/Cx+ULOHXS/Cg4vKb3vYkztjv5BvpvYEs\nV+mU1ZCcu9+aCOX6ex+SFGfBfaUb8Hiql1BZxgQuQ27lNBkeivmsICr5u7gCYi2Z\nqc7Qmp4quDabSzq69QpRcxzVPdu2e+P59sc3R4rqILQcsUVTUWQBVAiEU48p8PyH\nnsCmA0jTN7ZYcQteUvZzviRoNx+tVe5Fi87fEhXFfPeRnARt1bYEXCqjdwtAP1s6\nUzXXka8IDBnv4Wl9WGHLp5a6PaODc8W7vFC5I5N1HQKBgQDuMWqQ2wuTd1Aig7hP\nmcw3JUqZOMg85jq9qeUdcKbYSC7g/oOy4/6h2MU3N4HZ+wsI06kXh0zXJoBhmrAu\nXbJV7yq73lzHGsT4fac+GMEYVz/kpk1641Qcjg3Mtw5THwoHQkodm70w9UtjCi6J\n3rtOaOip7zl7w4otExAQjFhnxwKBgQC8VG6c55IR0ijTzI4TyIYOFDUbk0L/SgI7\n82lmGPYLsOYktqRZa08fJTs7gxpviOi42zjgiIfzzA0UjyFs0/eI7LCz+ZCGnCkC\nC9ehInDxsl4P/vqviyK0XUuYt9tmClwcKJNBE6YGERN6LwwLa9izPsUOPTSeQyuu\nmxjnMWg26wKBgGBCXjOeIiZ9QEhCfRjGKa5bhrM3LEzYKgL+BtaH8RVUzoUktip0\nUzIq/UBcUUC7YHE3wIz+o8ILEDTho7OJMAnkdpunuEzKd7GIbi79KAPjNrH7tzIj\nbpl/mvoRPFvBHndihbtDdgi0CLxEoBwdhAqjAOuz/sISeuPOYV6eqRd/AoGAVXiA\nJueVzE6zxsPMK0BTTqpvG8+ulUvSTcD/sZ1cdRvYpwrY9dgUtY7hHfY3Fi1taQ/c\n9VIhWUzfFtiKk+hzLAo3e8akh+LxXYNgXjnSRm7r75iJzwd3PaIlv+6ZPOswuHrV\nsbAoJhKz4zzc24Ybd+Xh6r9uVPEpLvomyC4NHPcCgYEAzegl+Z/qNhYEKdffRbgO\nPcwI43QTPbdp1IZFYnlnjo6pZL88XFY1CTcgmeY+paNcZALMNKY6lkj+CxBLroEe\nuI/b7+u4dxo4acY1ekaywG8EPBieX3HJWyFkTtQokKs8syegH0Nox7Vso8oMIwTA\nnDPDdlbzFVjiWZLsaWsgx6c=\n-----END PRIVATE KEY-----\n",
+  "client_email": "b0shka@arcane-transit-336115.iam.gserviceaccount.com",
+  "client_id": "108017781795731505437",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/b0shka%40arcane-transit-336115.iam.gserviceaccount.com"
+}

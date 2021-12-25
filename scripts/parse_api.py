@@ -1,15 +1,17 @@
 import os
+import io
 from google.cloud import vision
-from google.cloud.vision import types
 
 
-os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = r'token.json'
-
+os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = os.path.join(os.curdir, 'account.json')
+FILE_NAME = 'img.jpg'
 client = vision.ImageAnnotatorClient()
-FILE_NAME = 'img.png'
 
-with open(FILE_NAME, 'rb') as image_file:
-    content = image_file.read()
+with io.open(FILE_NAME, 'rb') as image:
+    content = image.read()
 
-image = vision.types.Image(content=content)
-#response = client.
+image = vision.Image(content = content)
+response = client.label_detection(image=image)
+
+for label in response.label_annotations:
+    print(label.description, '(%.2f%%)' % (label.score*100.))

@@ -236,3 +236,40 @@ class DatabaseSQL:
 		except Exception as error:
 			logger.error(error)
 			return error
+
+
+	def get_count_users(self):
+		try:
+			self.sql.execute(f"SELECT COUNT(*) FROM {TABLE_USERS};")
+			count_users = self.sql.fetchone()
+
+			self.sql.execute(f"SELECT COUNT(*) FROM {TABLE_USERS};")
+			count_used_users = self.sql.fetchone()
+
+			if count_users != None:
+				return count_users[0]
+			return count_users
+			
+		except mysql.connector.Error as error:
+			if error.errno == ERROR_NOT_EXISTS_TABLE:
+				result_create = self.create_tables()
+				if result_create == 1:
+					self.get_count_users()
+				else:
+					return result_create
+
+			elif error.errno == ERROR_CONNECT_MYSQL:
+				logger.error(f"Connection to MYSQL: {error}")
+				return error
+
+			elif error.errno == ERROR_LOST_CONNECTION_MYSQL:
+				self.connect_db()
+				self.get_count_users()
+
+			else:
+				logger.error(error)
+				return error
+
+		except Exception as error:
+			logger.error(error)
+			return error

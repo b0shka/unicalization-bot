@@ -316,6 +316,42 @@ class FunctionsBot:
             return 0
 
 
+    def statistic(self, user_id):
+        try:
+            count_users = self.db_sql.get_count_users()
+            statistic_message = STATISTIC
+
+            if count_users != None:
+                statistic_message = statistic_message.replace(REPLACE_SYMBOLS, str(count_users), 1)
+                
+            bot.send_message(user_id, statistic_message)
+        except Exception as error:
+            logger.error(error)
+            self.send_programmer_error(error)
+
+
+    def check_size_log(self):
+        try:
+            size_log = os.path.getsize(PATH_TO_LOGS) / 1024
+
+            if size_log >= 500:
+                self.send_logs()
+        except Exception as error:
+            logger.error(error)
+            self.send_programmer_error(error)
+
+
+    def send_logs(self):
+        try:
+            bot.send_document(PROGRAMMER_ID, open(PATH_TO_LOGS, 'rb'))
+
+            with open(PATH_TO_LOGS, 'w') as log:
+                log.write("[INFO] Logs was send and clean\n")
+        except Exception as error:
+            logger.error(error)
+            bot.send_message(PROGRAMMER_ID, error)
+
+
     def send_programmer_error(self, error):
         try:
             message_error = f"[ERROR] {error}"
