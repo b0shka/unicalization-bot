@@ -67,6 +67,11 @@ def convet_photo(message: types.Message):
 	bot.send_message(message.from_user.id, "Обработка фотографии началось")
 	func.unicalization_photo(message)
 
+	result_add = db_sql.add_file_id(message.from_user.id, message.photo[-1].file_id)
+	if result_add != 1:
+		logger.error(result_add)
+		func.send_programmer_error(result_add)
+
 
 @bot.message_handler(content_types=["video"])
 def convet_photo(message: types.Message):

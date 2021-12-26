@@ -19,6 +19,18 @@ def answer(call):
         elif "mailing" in call.data:
             bot.delete_message(chat_id=call.from_user.id, message_id=call.message.message_id)
 
+            if call.data == "mailing":
+                markup_inline = types.InlineKeyboardMarkup()
+
+                all_users = types.InlineKeyboardButton(text='Всем пользователям', callback_data = 'mailing_all_users')
+
+                markup_inline.add(all_users)
+                bot.send_message(user_id, 'Выберите кому делать рассылку', reply_markup=markup_inline)
+
+            else:
+                text_message = bot.send_message(user_id, 'Введите сообщение для рассылки')
+                bot.register_next_step_handler(text_message, func.mailing, call.data, user_id)
+
         elif call.data == 'logs':
             if user_id == PROGRAMMER_ID:
                 func.send_logs()

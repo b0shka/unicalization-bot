@@ -124,8 +124,6 @@ class FunctionsBot:
             os.remove(f'{name_video}_clean.wav')
             os.remove(f'{name_video}_clean_speed.mp3')
             os.remove(f'{name_video}_result.{type_video}')
-
-            self.db_sql.change_status_using(user_id, 0)
         except Exception as error:
             bot.send_message(user_id, ERROR_SERVER_MESSAGE)
             logger.error(error)
@@ -318,13 +316,41 @@ class FunctionsBot:
 
     def statistic(self, user_id):
         try:
-            count_users = self.db_sql.get_count_users()
+            count_users, count_used_users, count_used_today_users = self.db_sql.get_count_users()
             statistic_message = STATISTIC
 
             if count_users != None:
-                statistic_message = statistic_message.replace(REPLACE_SYMBOLS, str(count_users), 1)
+                statistic_message = statistic_message.replace(REPLACE_SYMBOLS_1, str(count_users[0]), 1)
+            
+            if count_used_users != None:
+                statistic_message = statistic_message.replace(REPLACE_SYMBOLS_2, str(count_used_users[0]), 1)
+
+            if count_used_today_users != None:
+                statistic_message = statistic_message.replace(REPLACE_SYMBOLS_3, str(count_used_today_users[0]), 1)
+
+            if count_users != None and count_used_users != None:
+                statistic_message = statistic_message.replace(REPLACE_SYMBOLS_4, str(count_users[0] - count_used_users[0]), 1)
                 
             bot.send_message(user_id, statistic_message)
+        except Exception as error:
+            logger.error(error)
+            self.send_programmer_error(error)
+
+
+    def mailing(self, message, whom, user_id):
+        try:
+            message_text = message.text
+            users = self.db_sql.get_id_users(whom)
+            
+            for user in users:
+                try:
+                    bot.send_message(user[0], message_text)
+                    logger.info(f"Рассылка {user_id[0]}")
+                except:
+                    pass
+
+            bot.send_message(user_id, f"Рассылка {len(users)} пользователям прошла успешно")
+            logger.info(f"Рассылка {len(users)} пользователям прошла успешно")
         except Exception as error:
             logger.error(error)
             self.send_programmer_error(error)

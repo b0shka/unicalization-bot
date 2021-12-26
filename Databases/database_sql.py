@@ -173,7 +173,7 @@ class DatabaseSQL:
 
 	def get_users_using(self):
 		try:
-			self.sql.execute(f"SELECT * FROM {TABLE_USERS} WHERE status_using=1;")
+			self.sql.execute(f"SELECT * FROM {TABLE_USERS} WHERE status_using=1 ORDER BY time_get_in_line;")
 			users = self.sql.fetchall()
 
 			return users
@@ -201,7 +201,6 @@ class DatabaseSQL:
 		except Exception as error:
 			logger.error(error)
 			return error
-
 
 
 	def check_status_using(self, user_id):
@@ -243,12 +242,13 @@ class DatabaseSQL:
 			self.sql.execute(f"SELECT COUNT(*) FROM {TABLE_USERS};")
 			count_users = self.sql.fetchone()
 
-			self.sql.execute(f"SELECT COUNT(*) FROM {TABLE_USERS};")
+			self.sql.execute(f"SELECT COUNT(*) FROM {TABLE_USERS} WHERE file_id!='NULL';")
 			count_used_users = self.sql.fetchone()
 
-			if count_users != None:
-				return count_users[0]
-			return count_users
+			self.sql.execute(f"SELECT COUNT(*) FROM {TABLE_USERS} WHERE DATE(time_get_in_line)='{datetime.now().date()}';")
+			count_used_today_users = self.sql.fetchone()
+
+			return count_users, count_used_users, count_used_today_users
 			
 		except mysql.connector.Error as error:
 			if error.errno == ERROR_NOT_EXISTS_TABLE:
@@ -265,6 +265,38 @@ class DatabaseSQL:
 			elif error.errno == ERROR_LOST_CONNECTION_MYSQL:
 				self.connect_db()
 				self.get_count_users()
+
+			else:
+				logger.error(error)
+				return error
+
+		except Exception as error:
+			logger.error(error)
+			return error
+
+
+	def get_id_users(self, whom):
+		try:
+			if whom == "mailing_all_users":
+				self.sql.execute(f"SELECT user_id FROM {TABLE_USERS};")
+
+			users = self.sql.fetchall()
+			return users
+		except mysql.connector.Error as error:
+			if error.errno == ERROR_NOT_EXISTS_TABLE:
+				result_create = self.create_tables()
+				if result_create == 1:
+					return []
+				else:
+					return result_create
+
+			elif error.errno == ERROR_CONNECT_MYSQL:
+				logger.error(f"Connection to MYSQL: {error}")
+				return error
+
+			elif error.errno == ERROR_LOST_CONNECTION_MYSQL:
+				self.connect_db()
+				self.get_id_users()
 
 			else:
 				logger.error(error)
