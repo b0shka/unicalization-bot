@@ -31,9 +31,10 @@ class FunctionsBot:
             self.send_programmer_error(error)
 
 
-    def unicalization_photo(self, message):
+    def unicalization_photo(self, message, file_id):
         try:
-            file_info = bot.get_file(message.photo[-1].file_id)
+            bot.send_message(message.from_user.id, "Обработка фотографии началась")
+            file_info = bot.get_file(file_id)
 
             type_photo = file_info.file_path.split(".")[-1]
             name_img = f'{PATH_TO_BOT}/img/img_{message.from_user.id}'

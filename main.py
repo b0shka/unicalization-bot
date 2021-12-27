@@ -63,37 +63,74 @@ def panel(message: types.Message):
 
 
 @bot.message_handler(content_types=["photo"])
-def convet_photo(message: types.Message):
-	bot.send_message(message.from_user.id, "Обработка фотографии началось")
-	func.unicalization_photo(message)
+def unicalizing_photo(message: types.Message):
+	try:
+		file_id = message.photo[-1].file_id
+		func.unicalization_photo(message, file_id)
 
-	result_add = db_sql.add_file_id(message.from_user.id, message.photo[-1].file_id)
-	if result_add != 1:
-		logger.error(result_add)
-		func.send_programmer_error(result_add)
+		result_add = db_sql.add_file_id(message.from_user.id, file_id)
+		if result_add != 1:
+			logger.error(result_add)
+			func.send_programmer_error(result_add)
+	except Exception as error:
+		logger.error(error)
+		func.send_programmer_error(error)
 
 
 @bot.message_handler(content_types=["video"])
-def convet_photo(message: types.Message):
-	status_user = db_sql.check_status_using(message.from_user.id)
+def unicalizing_video(message: types.Message):
+	try:
+		processing_video(message, message.video.file_id)
+	except Exception as error:
+		logger.error(error)
+		func.send_programmer_error(error)
 
-	if status_user == 0:
-		result_add = db_sql.add_file_id(message.from_user.id, message.video.file_id)
 
-		if result_add == 1:
-			count_ = len(db_sql.get_users_using())
-			result_change = db_sql.change_status_using(message.from_user.id, 1)
+@bot.message_handler(content_types=['document'])
+def unicalizing_document(message: types.Message):
+	photo_name = ['jpeg', 'jpg', 'png']
+	video_name = ['mp4', 'avi', 'mkv', 'MP4', 'wav']
 
-			if result_change == 1:
-				bot.send_message(message.from_user.id, f"Выше место в очереди: {count_+1}")
+	file_name = message.document.file_name.split('.')
+	file_id = message.document.file_id
+
+	if file_name[-1] in photo_name:
+		func.unicalization_photo(message, file_id)
+
+		result_add = db_sql.add_file_id(message.from_user.id, file_id)
+		if result_add != 1:
+			logger.error(result_add)
+			func.send_programmer_error(result_add)
+	elif file_name[-1] in video_name:
+		processing_video(message, file_id)
+	else:
+		func.else_answer()
+
+
+def processing_video(message, file_id):
+	try:
+		status_user = db_sql.check_status_using(message.from_user.id)
+
+		if status_user == 0:
+			result_add = db_sql.add_file_id(message.from_user.id, file_id)
+
+			if result_add == 1:
+				count_ = len(db_sql.get_users_using())
+				result_change = db_sql.change_status_using(message.from_user.id, 1)
+
+				if result_change == 1:
+					bot.send_message(message.from_user.id, f"Ваше место в очереди: {count_+1}")
+				else:
+					bot.send_message(message.from_user.id, ERROR_SERVER_MESSAGE)
 			else:
 				bot.send_message(message.from_user.id, ERROR_SERVER_MESSAGE)
+		elif status_user == 1:
+			bot.send_message(message.from_user.id, "Вы уже стоите в очереди")
 		else:
 			bot.send_message(message.from_user.id, ERROR_SERVER_MESSAGE)
-	elif status_user == 1:
-		bot.send_message(message.from_user.id, "Вы уже стоите в очереди")
-	else:
-		bot.send_message(message.from_user.id, ERROR_SERVER_MESSAGE)
+	except Exception as error:
+		logger.error(error)
+		func.send_programmer_error(error)
 
 
 @bot.message_handler(content_types=["text"])
