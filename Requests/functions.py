@@ -6,6 +6,7 @@ from PIL import Image, ImageEnhance
 from pydub import AudioSegment, effects
 import numpy as np
 import moviepy.editor as moviepy
+from skimage.filters import gaussian
 from Variables.config import *
 from Variables.error_messages import *
 from Variables.text_messages import *
@@ -104,15 +105,23 @@ class FunctionsBot:
             if result_clean != 1:
                 self.send_programmer_error(result_clean)
 
-            result_blur = self.gaussianBlur_video(f'{name_video}_clean.{type_video}')
-            if result_blur != 1:
-                self.send_programmer_error(result_blur)
+            result_noise = self.noise_video(f'{name_video}_clean.{type_video}')
+            if result_noise != 1:
+                self.send_programmer_error(result_noise)
 
-            result_speed = self.speed_change(f'{name_video}_clean.{type_video}')
+            clip = moviepy.VideoFileClip(f'{name_video}_clean_salt.{type_video}')
+            clip_blurred = clip.fl_image(self.gaussianBlur_video)
+            clip_blurred.write_videofile(f"{name_video}_clean_salt_blur.{type_video}")
+
+            result_speed = self.speed_change_video(f'{name_video}_clean.{type_video}')
             if result_speed != 1:
                 self.send_programmer_error(result_speed)
 
-            clip = moviepy.VideoFileClip(f"{name_video}_clean_speed.{type_video}")
+            result_contrast = self.change_contrast_video(f'{name_video}_clean_speed.{type_video}')
+            if result_contrast != 1:
+                self.send_programmer_error(result_contrast)
+
+            clip = moviepy.VideoFileClip(f"{name_video}_clean_speed_contrast.{type_video}")
             clip.write_videofile(f"{name_video}_result.{type_video}")
 
             with open(f'{name_video}_result.{type_video}', 'rb') as video:
@@ -121,8 +130,10 @@ class FunctionsBot:
             try:
                 os.remove(path_video)
                 os.remove(f'{name_video}_clean.{type_video}')
-                os.remove(f'{name_video}_clean_blur.{type_video}')
+                os.remove(f'{name_video}_clean_salt.{type_video}')
+                os.remove(f'{name_video}_clean_salt_blur.{type_video}')
                 os.remove(f'{name_video}_clean_speed.{type_video}')
+                os.remove(f'{name_video}_clean_speed_contrast.{type_video}')
                 os.remove(f'{name_video}_clean.wav')
                 os.remove(f'{name_video}_clean_speed.mp3')
                 os.remove(f'{name_video}_result.{type_video}')
@@ -183,6 +194,61 @@ class FunctionsBot:
             return 0
 
 
+    def noise_video(self, path):
+        try:
+            name_audio = path.split(".")[0]
+            type_video = path.split(".")[-1]
+
+            cap = cv2.VideoCapture(path)
+            frame_width = int(cap.get(3))
+            frame_height = int(cap.get(4))
+            output = cv2.VideoWriter(f'{name_audio}_salt.{type_video}', cv2.VideoWriter_fourcc('M','J','P','G'), 30, (frame_width, frame_height))
+
+            while(cap.isOpened()):
+                ret, frame = cap.read()
+                if ret == True:
+                    s_vs_p = 0.5
+                    amount = 0.004
+                    out = np.copy(frame)
+                    num_salt = np.ceil(amount * frame.size * s_vs_p)
+                    coords = [np.random.randint(0, i - 1, int(num_salt))
+                            for i in frame.shape]
+                    out[coords] = 1
+
+                    num_pepper = np.ceil(amount * frame.size * (1. - s_vs_p))
+                    coords = [np.random.randint(0, i - 1, int(num_pepper))
+                            for i in frame.shape]
+                    out[coords] = 0
+
+                    output.write(frame)
+
+                else:
+                    break
+
+            cap.release()
+            return 1
+        except Exception as error:
+            logger.error(error)
+            self.send_programmer_error(error)
+            return 0
+
+
+    def medianBlur_photo(self, path):
+        try:
+            img = cv2.imread(path)
+            img_name = path.split(".")[0]
+            img_type = path.split(".")[1]
+
+            median = cv2.medianBlur(img.astype('float32'), 1)
+            cv2.imwrite(f'{img_name}_median.{img_type}', median)
+
+            return 1
+        except Exception as error:
+            logger.error(error)
+            self.send_programmer_error(error)
+            return 0
+
+
     def gaussianBlur_photo(self, path):
         try:
             img = cv2.imread(path)
@@ -201,67 +267,7 @@ class FunctionsBot:
 
     def gaussianBlur_video(self, path):
         try:
-            name_audio = path.split(".")[0]
-            type_video = path.split(".")[-1]
-
-            contrast = 0.8
-            brightness = 0.8
-
-            cap = cv2.VideoCapture(path)
-            frame_width = int(cap.get(3))
-            frame_height = int(cap.get(4))
-            output = cv2.VideoWriter(f'{name_audio}_blur.{type_video}', cv2.VideoWriter_fourcc('M','J','P','G'), 30, (frame_width, frame_height))
-
-            count_ = 1
-
-            while(cap.isOpened()):
-                ret, frame = cap.read()
-                if ret == True:
-                    out = frame
-                    s_vs_p = 0.5
-                    amount = 0.004
-                    out = np.copy(frame)
-                    num_salt = np.ceil(amount * frame.size * s_vs_p)
-                    coords = [np.random.randint(0, i - 1, int(num_salt))
-                            for i in frame.shape]
-                    out[coords] = 1
-
-                    num_pepper = np.ceil(amount* frame.size * (1. - s_vs_p))
-                    coords = [np.random.randint(0, i - 1, int(num_pepper))
-                            for i in frame.shape]
-                    out[coords] = 0
-
-                    frame = cv2.GaussianBlur(out, (3, 3), 0)
-
-                    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-                    frame[:,:,2] = np.clip(contrast * frame[:,:,2] + brightness, 0, 255)
-                    frame = cv2.cvtColor(frame, cv2.COLOR_HSV2BGR)
-
-                    output.write(frame)
-                    count_ += 1
-
-                else:
-                    break
-
-            cap.release()
-
-            return 1
-        except Exception as error:
-            logger.error(error)
-            self.send_programmer_error(error)
-            return 0
-
-
-    def medianBlur_photo(self, path):
-        try:
-            img = cv2.imread(path)
-            img_name = path.split(".")[0]
-            img_type = path.split(".")[1]
-
-            median = cv2.medianBlur(img.astype('float32'), 1)
-            cv2.imwrite(f'{img_name}_median.{img_type}', median)
-
-            return 1
+            return gaussian(path.astype(float), sigma=2, truncate=1/4)
         except Exception as error:
             logger.error(error)
             self.send_programmer_error(error)
@@ -295,7 +301,26 @@ class FunctionsBot:
             return 0
 
 
-    def speed_change(self, path):
+    def change_contrast_video(self, path):
+        try:
+            name_video = path.split(".")[0]
+            type_video = path.split(".")[-1]
+
+            contrast = 0.9
+            gamma = 1.3
+            brightness = 0
+            saturation = 1
+
+            os.system(f"ffmpeg -i {path} -vf eq=contrast={contrast}:gamma={gamma}:brightness={brightness}:saturation={saturation} -c:a copy {name_video}_contrast.{type_video}")
+
+            return 1
+        except Exception as error:
+            logger.error(error)
+            self.send_programmer_error(error)
+            return 0
+
+
+    def speed_change_video(self, path):
         try:
             name_audio = path.split(".")[0]
             type_video = path.split(".")[-1]
@@ -313,8 +338,25 @@ class FunctionsBot:
             #sound_speed = sound.speedup(speed, 150, 25)
             #sound_speed.export(f'{name_audio}_speed.mp3', format='mp3')
 
-            os.system(f"ffmpeg -y -i {name_audio}_blur.{type_video} -i {name_audio}_speed.mp3 -c copy {name_audio}_speed.{type_video}")
+            os.system(f"ffmpeg -y -i {name_audio}_salt_blur.{type_video} -i {name_audio}_speed.mp3 -c copy {name_audio}_speed.{type_video}")
 
+            return 1
+        except Exception as error:
+            logger.error(error)
+            self.send_programmer_error(error)
+            return 0
+
+
+    def resizeVideo(self, path):
+        try:
+            name_video = path.split(".")[0]
+            type_video = path.split(".")[-1]
+            
+            #clip = moviepy.VideoFileClip(path)
+            #clip_resized = clip.resize(height=480)
+            #clip_resized.write_videofile(f"{name_video}_480.{type_video}")
+
+            os.system(f"ffmpeg -i {path} -vf scale=1280:720 {name_video}_720.{type_video}")
             return 1
         except Exception as error:
             logger.error(error)
