@@ -1,6 +1,4 @@
 Logs/
-Variables/config.py
-Variables/databases.py
 Variables/__pycache__
 Requests/__pycache__
 Databases/__pycache__

@@ -118,13 +118,16 @@ class FunctionsBot:
             with open(f'{name_video}_result.{type_video}', 'rb') as video:
                 bot.send_video(user_id, video)
 
-            os.remove(path_video)
-            os.remove(f'{name_video}_clean.{type_video}')
-            os.remove(f'{name_video}_clean_blur.{type_video}')
-            os.remove(f'{name_video}_clean_speed.{type_video}')
-            os.remove(f'{name_video}_clean.wav')
-            os.remove(f'{name_video}_clean_speed.mp3')
-            os.remove(f'{name_video}_result.{type_video}')
+            try:
+                os.remove(path_video)
+                os.remove(f'{name_video}_clean.{type_video}')
+                os.remove(f'{name_video}_clean_blur.{type_video}')
+                os.remove(f'{name_video}_clean_speed.{type_video}')
+                os.remove(f'{name_video}_clean.wav')
+                os.remove(f'{name_video}_clean_speed.mp3')
+                os.remove(f'{name_video}_result.{type_video}')
+            except:
+                pass
         except Exception as error:
             bot.send_message(user_id, ERROR_SERVER_MESSAGE)
             logger.error(error)
@@ -209,9 +212,12 @@ class FunctionsBot:
             frame_height = int(cap.get(4))
             output = cv2.VideoWriter(f'{name_audio}_blur.{type_video}', cv2.VideoWriter_fourcc('M','J','P','G'), 30, (frame_width, frame_height))
 
+            count_ = 1
+
             while(cap.isOpened()):
                 ret, frame = cap.read()
                 if ret == True:
+                    out = frame
                     s_vs_p = 0.5
                     amount = 0.004
                     out = np.copy(frame)
@@ -232,6 +238,7 @@ class FunctionsBot:
                     frame = cv2.cvtColor(frame, cv2.COLOR_HSV2BGR)
 
                     output.write(frame)
+                    count_ += 1
 
                 else:
                     break
@@ -361,7 +368,7 @@ class FunctionsBot:
         try:
             size_log = os.path.getsize(PATH_TO_LOGS) / 1024
 
-            if size_log >= 500:
+            if size_log >= 1000:
                 self.send_logs()
         except Exception as error:
             logger.error(error)

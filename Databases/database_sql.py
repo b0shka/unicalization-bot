@@ -1,7 +1,6 @@
 import mysql.connector
 from datetime import datetime
-from Variables.databases import *
-from Variables.config import logger, bot, admins
+from Variables.config import *
 from Variables.error_messages import *
 
 
