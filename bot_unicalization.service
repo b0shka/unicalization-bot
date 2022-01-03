@@ -1,0 +1,13 @@
+[Unit]
+Description=Telegram bot
+After=network.target
+
+[Service]
+User=q
+WorkingDirectory=/home/q/bot_unicalization
+ExecStart=/usr/bin/python3 /home/q/bot_unicalization/main.py
+RestartSec=15
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

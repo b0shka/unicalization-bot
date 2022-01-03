@@ -7,6 +7,7 @@ from PIL import Image, ImageEnhance
 from pydub import AudioSegment
 from pydub import effects
 from skimage.filters import gaussian
+from skimage.util import random_noise
  
  
 def clean_metadata_photo(filename):
@@ -43,28 +44,39 @@ def noise_video(path):
 	type_video = path.split(".")[-1]
 
 	cap = cv2.VideoCapture(path)
+
 	frame_width = int(cap.get(3))
 	frame_height = int(cap.get(4))
-	output = cv2.VideoWriter(f'{name_audio}_salt.{type_video}', cv2.VideoWriter_fourcc('M','J','P','G'), 30, (frame_width, frame_height))
+	fourcc = cv2.VideoWriter_fourcc(*'XVID')
+	fps = 30
+
+	output = cv2.VideoWriter(f'{name_audio}_salt.{type_video}', fourcc, fps, (frame_width, frame_height))
+	count_frame = 1
 
 	while(cap.isOpened()):
 		ret, frame = cap.read()
 		if ret == True:
-			s_vs_p = 0.5
-			amount = 0.004
-			out = np.copy(frame)
-			num_salt = np.ceil(amount * frame.size * s_vs_p)
-			coords = [np.random.randint(0, i - 1, int(num_salt))
-					for i in frame.shape]
-			out[coords] = 1
+			if count_frame % 3 == 0:
+				s_vs_p = 0.5
+				amount = 0.002
+				out = np.copy(frame)
+				num_salt = np.ceil(amount * frame.size * s_vs_p)
+				coords = [np.random.randint(0, i - 1, int(num_salt))
+						for i in frame.shape]
+				out[coords] = 1
 
-			num_pepper = np.ceil(amount * frame.size * (1. - s_vs_p))
-			coords = [np.random.randint(0, i - 1, int(num_pepper))
-					for i in frame.shape]
-			out[coords] = 0
+				num_pepper = np.ceil(amount * frame.size * (1. - s_vs_p))
+				coords = [np.random.randint(0, i - 1, int(num_pepper))
+						for i in frame.shape]
+				out[coords] = 0
+				frame = out
 
+				#frame = random_noise(frame, mode='s&p', amount=0.011)
+				#frame = np.array(255 * frame, dtype=np.uint8)
+
+			frame = cv2.GaussianBlur(frame, (3, 3), 0)
 			output.write(frame)
-
+			count_frame += 1
 		else:
 			break
 

@@ -14,9 +14,9 @@ USER = "q"
 PATH_TO_BOT = f"/home/{USER}/p/python/projects/unicalization"
 PATH_TO_LOGS = f"{PATH_TO_BOT}/Logs/info.log"
 
-PROGRAMMER_ID = os.getenv("PROGRAMMER_ID")
-MANAGER_ID = os.getenv("MANAGER_ID")
-admins = [PROGRAMMER_ID]
+PROGRAMMER_ID = int(os.getenv("PROGRAMMER_ID"))
+MANAGER_ID = int(os.getenv("MANAGER_ID"))
+admins = [PROGRAMMER_ID, MANAGER_ID]
 
 
 IP_DB = os.getenv("BOT_DATABASE_IP")
