@@ -1,11 +1,12 @@
 import os
 import cv2
 import skimage
+import subprocess
+import numpy as np
+import moviepy.editor as moviepy
 from random import choice
 from PIL import Image, ImageEnhance
 from pydub import AudioSegment, effects
-import numpy as np
-import moviepy.editor as moviepy
 from skimage.filters import gaussian
 from skimage.util import random_noise
 from Variables.config import *
@@ -37,6 +38,7 @@ class FunctionsBot:
         try:
             bot.send_message(message.from_user.id, "Обработка фотографии началась")
             file_info = bot.get_file(file_id)
+            file_size = file_info.file_size
 
             type_photo = file_info.file_path.split(".")[-1]
             name_img = f'{PATH_TO_BOT}/img/img_{message.from_user.id}'
@@ -45,6 +47,13 @@ class FunctionsBot:
             downloaded_file = bot.download_file(file_info.file_path)
             with open(path_img, 'wb') as new_file:
                 new_file.write(downloaded_file)
+
+            if (file_size // 1048576) > 4:
+                original_image = Image.open(path_img)
+                width_img, height_img = original_image.size
+
+                original_image.thumbnail((width_img * 0.6, height_img * 0.6), Image.ANTIALIAS)
+                original_image.save(path_img)
 
             result_clean = self.clean_metadata_photo(path_img)
             if result_clean != 1:
@@ -102,6 +111,12 @@ class FunctionsBot:
             with open(path_video, 'wb') as new_file:
                 new_file.write(downloaded_file)
 
+            size_video = os.path.getsize(path_video)
+
+            result_resize = self.resizeVideo(path_video)
+            if result_resize != 1:
+                self.send_programmer_error(result_resize)
+
             result_clean = self.clean_metadata_video(path_video)
             if result_clean != 1:
                 self.send_programmer_error(result_clean)
@@ -122,11 +137,16 @@ class FunctionsBot:
             if result_contrast != 1:
                 self.send_programmer_error(result_contrast)
 
-            clip = moviepy.VideoFileClip(f"{name_video}_clean_speed_contrast.{type_video}")
-            clip.write_videofile(f"{name_video}_result.{type_video}")
-
-            with open(f'{name_video}_result.{type_video}', 'rb') as video:
-                bot.send_video(user_id, video)
+            result_compression = self.compression_video(f"{name_video}_clean_speed_contrast.{type_video}", size_video)
+            
+            if result_compression == 0:
+                self.send_programmer_error(result_compression)
+            elif result_compression == -1:
+                with open(f'{name_video}_clean_speed_contrast.{type_video}', 'rb') as video:
+                    bot.send_video(user_id, video)
+            elif result_compression == 1:
+                with open(f'{name_video}_result.{type_video}', 'rb') as video:
+                    bot.send_video(user_id, video)
 
             try:
                 os.remove(path_video)
@@ -160,7 +180,6 @@ class FunctionsBot:
             return 1
         except Exception as error:
             logger.error(error)
-            self.send_programmer_error(error)
             return 0
 
 
@@ -173,7 +192,6 @@ class FunctionsBot:
             return 1
         except Exception as error:
             logger.error(error)
-            self.send_programmer_error(error)
             return 0
 
 
@@ -191,7 +209,6 @@ class FunctionsBot:
             return 1
         except Exception as error:
             logger.error(error)
-            self.send_programmer_error(error)
             return 0
 
 
@@ -241,7 +258,6 @@ class FunctionsBot:
             return 1
         except Exception as error:
             logger.error(error)
-            self.send_programmer_error(error)
             return 0
 
 
@@ -257,7 +273,6 @@ class FunctionsBot:
             return 1
         except Exception as error:
             logger.error(error)
-            self.send_programmer_error(error)
             return 0
 
 
@@ -273,7 +288,6 @@ class FunctionsBot:
             return 1
         except Exception as error:
             logger.error(error)
-            self.send_programmer_error(error)
             return 0
 
 
@@ -282,7 +296,6 @@ class FunctionsBot:
             return gaussian(path.astype(float), sigma=2, truncate=1/4)
         except Exception as error:
             logger.error(error)
-            self.send_programmer_error(error)
             return 0
 
 
@@ -309,7 +322,6 @@ class FunctionsBot:
             return 1
         except Exception as error:
             logger.error(error)
-            self.send_programmer_error(error)
             return 0
 
 
@@ -328,7 +340,6 @@ class FunctionsBot:
             return 1
         except Exception as error:
             logger.error(error)
-            self.send_programmer_error(error)
             return 0
 
 
@@ -355,7 +366,6 @@ class FunctionsBot:
             return 1
         except Exception as error:
             logger.error(error)
-            self.send_programmer_error(error)
             return 0
 
 
@@ -363,16 +373,37 @@ class FunctionsBot:
         try:
             name_video = path.split(".")[0]
             type_video = path.split(".")[-1]
-            
-            #clip = moviepy.VideoFileClip(path)
-            #clip_resized = clip.resize(height=480)
-            #clip_resized.write_videofile(f"{name_video}_480.{type_video}")
 
-            os.system(f"ffmpeg -i {path} -vf scale=1280:720 {name_video}_720.{type_video}")
+            cap = cv2.VideoCapture(path)
+            height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+            width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+            
+            if height > 720 or width > 1280:
+                #clip = moviepy.VideoFileClip(path)
+                #clip_resized = clip.resize(height=480)
+                #clip_resized.write_videofile(f"{name_video}_480.{type_video}")
+
+                os.system(f"ffmpeg -i {path} -vf scale=1280:720 {name_video}.{type_video}")
             return 1
         except Exception as error:
             logger.error(error)
-            self.send_programmer_error(error)
+            return 0
+
+
+    def compression_video(self, path, start_size):
+        try:
+            name_video = path.split(".")[0]
+            type_video = path.split(".")[-1]
+            size_video = os.path.getsize(path)
+
+            if (size_video // start_size) >= 2:
+                clip = moviepy.VideoFileClip(path)
+                clip.write_videofile(f"{name_video}_result.{type_video}")
+                return 1
+
+            return -1
+        except Exception as error:
+            logger.error(error)
             return 0
 
 

@@ -80,7 +80,10 @@ def unicalizing_photo(message: types.Message):
 @bot.message_handler(content_types=["video"])
 def unicalizing_video(message: types.Message):
 	try:
-		processing_video(message, message.video.file_id)
+		if message.video.duration <= 60:
+			processing_video(message, message.video.file_id)
+		else:
+			bot.send_message(message.from_user.id, VERY_LONG_VIDEO)
 	except Exception as error:
 		logger.error(error)
 		func.send_programmer_error(error)
@@ -102,7 +105,10 @@ def unicalizing_document(message: types.Message):
 			logger.error(result_add)
 			func.send_programmer_error(result_add)
 	elif file_name[-1] in video_name:
-		processing_video(message, file_id)
+		if message.video.duration <= 60:
+			processing_video(message, file_id)
+		else:
+			bot.send_message(message.from_user.id, VERY_LONG_VIDEO)
 	else:
 		func.else_answer()
 
