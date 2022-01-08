@@ -276,10 +276,11 @@ class DatabaseSQL:
 
 	def get_id_users(self, whom):
 		try:
+			users = []
 			if whom == "mailing_all_users":
 				self.sql.execute(f"SELECT user_id FROM {TABLE_USERS};")
+				users = self.sql.fetchall()
 
-			users = self.sql.fetchall()
 			return users
 		except mysql.connector.Error as error:
 			if error.errno == ERROR_NOT_EXISTS_TABLE:

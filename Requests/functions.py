@@ -1,7 +1,7 @@
 import os
 import cv2
+import time
 import skimage
-import subprocess
 import numpy as np
 import moviepy.editor as moviepy
 from random import choice
@@ -9,6 +9,7 @@ from PIL import Image, ImageEnhance
 from pydub import AudioSegment, effects
 from skimage.filters import gaussian
 from skimage.util import random_noise
+from skimage import img_as_ubyte
 from Variables.config import *
 from Variables.error_messages import *
 from Variables.text_messages import *
@@ -57,23 +58,31 @@ class FunctionsBot:
 
             result_clean = self.clean_metadata_photo(path_img)
             if result_clean != 1:
+                bot.send_message(message.from_user.id, ERROR_SERVER_MESSAGE)
                 self.send_programmer_error(result_clean)
+                return
 
             result_noise = self.noise_photo(path_img)
             if result_noise != 1:
+                bot.send_message(message.from_user.id, ERROR_SERVER_MESSAGE)
                 self.send_programmer_error(result_noise)
+                return
 
             #result_blur = self.gaussianBlur_photo(f'{name_img}_gaussian.{type_photo}')
             result_blur = self.medianBlur_photo(f'{name_img}_gaussian.{type_photo}')
             #result_blur = self.gaussianBlur_photo(f'{name_img}_salt.{type_photo}')
             if result_blur != 1:
+                bot.send_message(message.from_user.id, ERROR_SERVER_MESSAGE)
                 self.send_programmer_error(result_blur)
+                return
 
             #result_contrast = self.change_contrast_photo(f'{name_img}_gaussian_blur.{type_photo}')
             result_contrast = self.change_contrast_photo(f'{name_img}_gaussian_median.{type_photo}')
             #result_contrast = self.change_contrast_photo(f'{name_img}_salt_blur.{type_photo}')
             if result_contrast != 1:
+                bot.send_message(message.from_user.id, ERROR_SERVER_MESSAGE)
                 self.send_programmer_error(result_contrast)
+                return
 
             #photo = open(f'{name_img}_gaussian_blur_contrast.{type_photo}', 'rb')
             photo = open(f'{name_img}_gaussian_median_contrast.{type_photo}', 'rb')
@@ -115,15 +124,21 @@ class FunctionsBot:
 
             result_resize = self.resizeVideo(path_video)
             if result_resize != 1:
+                bot.send_message(user_id, ERROR_SERVER_MESSAGE)
                 self.send_programmer_error(result_resize)
+                return
 
             result_clean = self.clean_metadata_video(path_video)
             if result_clean != 1:
+                bot.send_message(user_id, ERROR_SERVER_MESSAGE)
                 self.send_programmer_error(result_clean)
+                return
 
             result_noise = self.noise_video(f'{name_video}_clean.{type_video}')
             if result_noise != 1:
+                bot.send_message(user_id, ERROR_SERVER_MESSAGE)
                 self.send_programmer_error(result_noise)
+                return
 
             #clip = moviepy.VideoFileClip(f'{name_video}_clean_salt.{type_video}')
             #clip_blurred = clip.fl_image(self.gaussianBlur_video)
@@ -131,11 +146,15 @@ class FunctionsBot:
 
             result_speed = self.speed_change_video(f'{name_video}_clean.{type_video}')
             if result_speed != 1:
+                bot.send_message(user_id, ERROR_SERVER_MESSAGE)
                 self.send_programmer_error(result_speed)
+                return
 
             result_contrast = self.change_contrast_video(f'{name_video}_clean_speed.{type_video}')
             if result_contrast != 1:
+                bot.send_message(user_id, ERROR_SERVER_MESSAGE)
                 self.send_programmer_error(result_contrast)
+                return
 
             result_compression = self.compression_video(f"{name_video}_clean_speed_contrast.{type_video}", size_video)
             
@@ -177,6 +196,9 @@ class FunctionsBot:
 
             image_without_exif.save(path)
 
+            #image = Image.open(path)
+            #image.save(path)
+
             return 1
         except Exception as error:
             logger.error(error)
@@ -197,12 +219,12 @@ class FunctionsBot:
 
     def noise_photo(self, path):
         try:
-            img = skimage.io.imread(path)
+            img = np.uint8(skimage.io.imread(path))
             img_name = path.split(".")[0]
             img_type = path.split(".")[1]
 
             gauss_noiseImg = skimage.util.random_noise(img, mode='gaussian', seed=None, clip=True)
-            skimage.io.imsave(f'{img_name}_gaussian.{img_type}', gauss_noiseImg)
+            skimage.io.imsave(f'{img_name}_gaussian.{img_type}', img_as_ubyte(gauss_noiseImg))
 
             #salt_noiseImg = skimage.util.random_noise(img, mode='salt', seed=None, clip=True)
             #skimage.io.imsave(f'{img_name}_salt.{img_type}', salt_noiseImg)
@@ -237,12 +259,12 @@ class FunctionsBot:
                         num_salt = np.ceil(amount * frame.size * s_vs_p)
                         coords = [np.random.randint(0, i - 1, int(num_salt))
                                 for i in frame.shape]
-                        out[coords] = 1
+                        out[tuple(coords)] = 1
 
                         num_pepper = np.ceil(amount * frame.size * (1. - s_vs_p))
                         coords = [np.random.randint(0, i - 1, int(num_pepper))
                                 for i in frame.shape]
-                        out[coords] = 0
+                        out[tuple(coords)] = 0
                         frame = out
 
                         #frame = random_noise(frame, mode='s&p', amount=0.011)
@@ -307,17 +329,12 @@ class FunctionsBot:
 
             contrast = ImageEnhance.Contrast(img) # контрастность
             sharpness = ImageEnhance.Sharpness(img) # резкость
-            brightness = ImageEnhance.Brightness(img) #яркость
+            brightness = ImageEnhance.Brightness(img) # яркость
 
             im_output = contrast.enhance(0.8) 
             #im_output = sharpness.enhance(0.05)
             im_output = brightness.enhance(0.8) 
-            im_output.save(f'{img_name}_contrast.{img_type}') 
-
-            #im_output = contrast.enhance(1.2) 
-            #im_output = sharpness.enhance(0.05)
-            #im_output = brightness.enhance(1.2) 
-            #im_output.save(f'{img.split(".")[0]}_contrast_2.jpg')
+            im_output.save(f'{img_name}_contrast.{img_type}')
 
             return 1
         except Exception as error:
@@ -478,3 +495,19 @@ class FunctionsBot:
             bot.send_document(PROGRAMMER_ID, open(PATH_TO_LOGS, 'rb'))
         except Exception as error:
             logger.error(error)
+
+
+    def uncalizing(self):
+        try:
+            while True:
+                time.sleep(5)
+                self.check_size_log()
+                users = self.db_sql.get_users_using()
+                
+                if type(users) == list and len(users) > 0:
+                    for user in users:
+                        self.unicalization_video(user[6], user[1])
+                        self.db_sql.change_status_using(user[1], 0)
+        except Exception as error:
+            logger.error(error)
+            print(f"[ERROR] {error}")

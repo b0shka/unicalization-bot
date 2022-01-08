@@ -6,16 +6,27 @@ from Variables.text_messages import *
 from Databases.database_sql import DatabaseSQL
 from Requests.requests_bot import RequestsBot
 from Requests.functions import FunctionsBot
-from Requests.unicalizing import Unicalizing
 
 
 db_sql = DatabaseSQL()
 req_bot = RequestsBot()
 func = FunctionsBot()
-unic = Unicalizing()
 
-unicalizing = Thread(target=unic.uncalizing)
+unicalizing = Thread(target=func.uncalizing)
 unicalizing.start()
+
+
+class Vars:
+	def __init__(self):
+		self.LIST_MEDIA_GROUP_ID = []
+
+	def add_element(self, element):
+		self.LIST_MEDIA_GROUP_ID.append(element)
+
+	def clean_list(self, element):
+		self.LIST_MEDIA_GROUP_ID = [element]
+
+vars = Vars()
 
 @bot.message_handler(commands=['start'])
 def start(message: types.Message):
@@ -65,13 +76,25 @@ def panel(message: types.Message):
 @bot.message_handler(content_types=["photo"])
 def unicalizing_photo(message: types.Message):
 	try:
-		file_id = message.photo[-1].file_id
-		func.unicalization_photo(message, file_id)
+		media_group_id = message.media_group_id
 
-		result_add = db_sql.add_file_id(message.from_user.id, file_id)
-		if result_add != 1:
-			logger.error(result_add)
-			func.send_programmer_error(result_add)
+		if media_group_id == None:
+			file_id = message.photo[-1].file_id
+			func.unicalization_photo(message, file_id)
+
+			result_add = db_sql.add_file_id(message.from_user.id, file_id)
+			if result_add != 1:
+				logger.error(result_add)
+				func.send_programmer_error(result_add)
+
+		else:
+			if media_group_id not in vars.LIST_MEDIA_GROUP_ID:
+				vars.add_element(media_group_id)
+				bot.send_message(message.from_user.id, "Скиньте только 1 фотографию")
+
+				if len(vars.LIST_MEDIA_GROUP_ID) > 50:
+					vars.clean_list(media_group_id)
+
 	except Exception as error:
 		logger.error(error)
 		func.send_programmer_error(error)
@@ -80,10 +103,21 @@ def unicalizing_photo(message: types.Message):
 @bot.message_handler(content_types=["video"])
 def unicalizing_video(message: types.Message):
 	try:
-		if message.video.duration <= 60:
-			processing_video(message, message.video.file_id)
+		media_group_id = message.media_group_id
+
+		if media_group_id == None:
+			if message.video.duration <= 60:
+				processing_video(message, message.video.file_id)
+			else:
+				bot.send_message(message.from_user.id, VERY_LONG_VIDEO)
 		else:
-			bot.send_message(message.from_user.id, VERY_LONG_VIDEO)
+			if media_group_id not in vars.LIST_MEDIA_GROUP_ID:
+				vars.add_element(media_group_id)
+				bot.send_message(message.from_user.id, "Скиньте только 1 видео")
+
+				if len(vars.LIST_MEDIA_GROUP_ID) > 50:
+					vars.clean_list(media_group_id)
+
 	except Exception as error:
 		logger.error(error)
 		func.send_programmer_error(error)
@@ -91,26 +125,52 @@ def unicalizing_video(message: types.Message):
 
 @bot.message_handler(content_types=['document'])
 def unicalizing_document(message: types.Message):
-	photo_name = ['jpeg', 'jpg', 'png']
-	video_name = ['mp4', 'avi', 'mkv', 'MP4', 'wav']
+	try:
+		photo_name = ['jpeg', 'jpg', 'png']
+		video_name = ['mp4', 'avi', 'mkv', 'MP4', 'wav']
 
-	file_name = message.document.file_name.split('.')
-	file_id = message.document.file_id
+		file_name = message.document.file_name.split('.')
+		file_id = message.document.file_id
 
-	if file_name[-1] in photo_name:
-		func.unicalization_photo(message, file_id)
+		if file_name[-1] in photo_name:
+			media_group_id = message.media_group_id
 
-		result_add = db_sql.add_file_id(message.from_user.id, file_id)
-		if result_add != 1:
-			logger.error(result_add)
-			func.send_programmer_error(result_add)
-	elif file_name[-1] in video_name:
-		if message.video.duration <= 60:
-			processing_video(message, file_id)
+			if media_group_id == None:
+				func.unicalization_photo(message, file_id)
+
+				result_add = db_sql.add_file_id(message.from_user.id, file_id)
+				if result_add != 1:
+					logger.error(result_add)
+					func.send_programmer_error(result_add)
+			else:
+				if media_group_id not in vars.LIST_MEDIA_GROUP_ID:
+					vars.add_element(media_group_id)
+					bot.send_message(message.from_user.id, "Скиньте только 1 фотографию")
+
+					if len(vars.LIST_MEDIA_GROUP_ID) > 50:
+						vars.clean_list(media_group_id)
+
+		elif file_name[-1] in video_name:
+			media_group_id = message.media_group_id
+
+			if media_group_id == None:
+				if message.video.duration <= 60:
+					processing_video(message, file_id)
+				else:
+					bot.send_message(message.from_user.id, VERY_LONG_VIDEO)
+			else:
+				if media_group_id not in vars.LIST_MEDIA_GROUP_ID:
+					vars.add_element(media_group_id)
+					bot.send_message(message.from_user.id, "Скиньте только 1 видео")
+
+					if len(vars.LIST_MEDIA_GROUP_ID) > 50:
+						vars.clean_list(media_group_id)
+
 		else:
-			bot.send_message(message.from_user.id, VERY_LONG_VIDEO)
-	else:
-		func.else_answer()
+			func.else_answer(message.from_user.id)
+	except Exception as error:
+		logger.error(error)
+		func.send_programmer_error(error)
 
 
 def processing_video(message, file_id):
