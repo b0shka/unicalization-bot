@@ -141,6 +141,38 @@ class DatabaseSQL:
 			return error
 
 
+	def update_date_unicalization(self, user_id: int):
+		try:
+			self.sql.execute(f"UPDATE {TABLE_USERS} SET time_get_in_line='{datetime.now()}' WHERE user_id={user_id};")
+			self.db.commit()
+
+			return 1
+
+		except mysql.connector.Error as error:
+			if error.errno == ERROR_NOT_EXISTS_TABLE:
+				result_create = self.create_tables()
+				if result_create == 1:
+					self.update_data_unicalization(user_id)
+				else:
+					return result_create
+
+			elif error.errno == ERROR_CONNECT_MYSQL:
+				logger.error(f"Connection to MYSQL: {error}")
+				return error
+
+			elif error.errno == ERROR_LOST_CONNECTION_MYSQL:
+				self.connect_db()
+				self.update_data_unicalization(user_id)
+
+			else:
+				logger.error(error)
+				return error
+
+		except Exception as error:
+			logger.error(error)
+			return error
+
+
 	def change_status_using(self, user_id: int, status: int):
 		try:
 			self.sql.execute(f"UPDATE {TABLE_USERS} SET status_using={status}, time_get_in_line='{datetime.now()}' WHERE user_id={user_id};")

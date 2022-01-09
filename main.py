@@ -91,6 +91,11 @@ def unicalizing_photo(message: types.Message):
 				logger.error(result_add)
 				func.send_programmer_error(result_add)
 
+			result_add = db_sql.update_date_unicalization(message.from_user.id)
+			if result_add != 1:
+				logger.error(result_add)
+				func.send_programmer_error(result_add)
+
 		else:
 			if media_group_id not in vars.LIST_MEDIA_GROUP_ID:
 				vars.add_element(media_group_id)
@@ -146,6 +151,11 @@ def unicalizing_document(message: types.Message):
 				if result_add != 1:
 					logger.error(result_add)
 					func.send_programmer_error(result_add)
+
+				result_add = db_sql.update_date_unicalization(message.from_user.id)
+				if result_add != 1:
+					logger.error(result_add)
+					func.send_programmer_error(result_add)
 			else:
 				if media_group_id not in vars.LIST_MEDIA_GROUP_ID:
 					vars.add_element(media_group_id)
@@ -192,12 +202,18 @@ def processing_video(message, file_id):
 					bot.send_message(message.from_user.id, f"Ваше место в очереди: {count_+1}")
 				else:
 					bot.send_message(message.from_user.id, ERROR_SERVER_MESSAGE)
+					logger.error(result_change)
+					func.send_programmer_error(result_change)
 			else:
 				bot.send_message(message.from_user.id, ERROR_SERVER_MESSAGE)
+				logger.error(result_add)
+				func.send_programmer_error(result_add)
 		elif status_user == 1:
 			bot.send_message(message.from_user.id, "Вы уже стоите в очереди")
 		else:
 			bot.send_message(message.from_user.id, ERROR_SERVER_MESSAGE)
+			logger.error(error)
+			func.send_programmer_error(error)
 	except Exception as error:
 		logger.error(error)
 		func.send_programmer_error(error)
