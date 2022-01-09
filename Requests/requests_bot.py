@@ -16,7 +16,13 @@ class RequestsBot:
     def result_message(self, search, message):
         try:
             if search == "уникализировать":
-                bot.send_message(message.from_user.id, "Скиньте фотографию или видео")
+                bot.send_message(message.from_user.id, UNOCALIZATION)
+
+            elif search == "информация":
+                bot.send_message(message.from_user.id, INFORMATION)
+
+            elif search == "настройки":
+                self.func_bot.settings(message.from_user.id)
 
             else:
                 self.func_bot.else_answer(message.from_user.id)

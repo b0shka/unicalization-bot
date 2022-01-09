@@ -32,8 +32,12 @@ vars = Vars()
 def start(message: types.Message):
 	try:
 		markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-		unic = types.KeyboardButton('Уникализировать')
-		markup.add(unic)
+		information = types.KeyboardButton('Информация')
+		settings = types.KeyboardButton('Настройки')
+		unicalization = types.KeyboardButton('Уникализировать')
+
+		markup.add(information, settings)
+		markup.add(unicalization)
 
 		bot.send_message(message.from_user.id, START_MESSAGE, reply_markup=markup)
 

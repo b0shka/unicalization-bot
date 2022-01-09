@@ -52,7 +52,10 @@ class DatabaseSQL:
 							time DATETIME DEFAULT CURRENT_TIMESTAMP,
 							file_id TEXT,
 							status_using INTEGER DEFAULT 0,
-							time_get_in_line DATETIME);""")
+							time_get_in_line DATETIME,
+							brightness_photo VARCHAR(10) DEFAULT 'middle',
+							brightness_video VARCHAR(10) DEFAULT 'middle',
+							noise_photo VARCHAR(10) DEFAULT 'middle');""")
 			self.db.commit()
 			logger.info(f'Создана таблица {TABLE_USERS} в БД')
 
@@ -297,6 +300,135 @@ class DatabaseSQL:
 			elif error.errno == ERROR_LOST_CONNECTION_MYSQL:
 				self.connect_db()
 				self.get_id_users()
+
+			else:
+				logger.error(error)
+				return error
+
+		except Exception as error:
+			logger.error(error)
+			return error
+
+
+	def save_settings(self, user_id, param, column):
+		try:
+			self.sql.execute(f"UPDATE {TABLE_USERS} SET {column}='{param}';")
+			self.db.commit()
+
+			return 1
+		except mysql.connector.Error as error:
+			if error.errno == ERROR_NOT_EXISTS_TABLE:
+				result_create = self.create_tables()
+				if result_create == 1:
+					self.save_settings(user_id, param, column)
+				else:
+					return result_create
+
+			elif error.errno == ERROR_CONNECT_MYSQL:
+				logger.error(f"Connection to MYSQL: {error}")
+				return error
+
+			elif error.errno == ERROR_LOST_CONNECTION_MYSQL:
+				self.connect_db()
+				self.save_settings(user_id, param, column)
+
+			else:
+				logger.error(error)
+				return error
+
+		except Exception as error:
+			logger.error(error)
+			return error
+
+	
+	def get_settings(self, user_id, column):
+		try:
+			self.sql.execute(f"SELECT {column} FROM {TABLE_USERS} WHERE user_id={user_id};")
+			param = self.sql.fetchone()
+
+			if param != None:
+				return param[0]
+			return param
+
+		except mysql.connector.Error as error:
+			if error.errno == ERROR_NOT_EXISTS_TABLE:
+				result_create = self.create_tables()
+				if result_create == 1:
+					self.get_settings(user_id, column)
+				else:
+					return result_create
+
+			elif error.errno == ERROR_CONNECT_MYSQL:
+				logger.error(f"Connection to MYSQL: {error}")
+				return error
+
+			elif error.errno == ERROR_LOST_CONNECTION_MYSQL:
+				self.connect_db()
+				self.get_settings(user_id, column)
+
+			else:
+				logger.error(error)
+				return error
+
+		except Exception as error:
+			logger.error(error)
+			return error
+
+
+	def get_all_settings(self, user_id):
+		try:
+			self.sql.execute(f"SELECT brightness_photo, brightness_video, noise_photo FROM {TABLE_USERS} WHERE user_id={user_id};")
+			settings = self.sql.fetchall()
+
+			return settings
+
+		except mysql.connector.Error as error:
+			if error.errno == ERROR_NOT_EXISTS_TABLE:
+				result_create = self.create_tables()
+				if result_create == 1:
+					self.get_all_settings(user_id)
+				else:
+					return result_create
+
+			elif error.errno == ERROR_CONNECT_MYSQL:
+				logger.error(f"Connection to MYSQL: {error}")
+				return error
+
+			elif error.errno == ERROR_LOST_CONNECTION_MYSQL:
+				self.connect_db()
+				self.get_all_settings(user_id)
+
+			else:
+				logger.error(error)
+				return error
+
+		except Exception as error:
+			logger.error(error)
+			return error
+
+
+	def throw_settings(self, user_id):
+		try:
+			self.sql.execute(f"UPDATE {TABLE_USERS} SET brightness_photo='middle', brightness_video='middle', noise_photo='middle' WHERE user_id={user_id};")
+			self.db.commit()
+
+			return 1
+
+		except mysql.connector.Error as error:
+			if error.errno == ERROR_NOT_EXISTS_TABLE:
+				result_create = self.create_tables()
+				if result_create == 1:
+					self.throw_settings(user_id)
+				else:
+					return result_create
+
+			elif error.errno == ERROR_CONNECT_MYSQL:
+				logger.error(f"Connection to MYSQL: {error}")
+				return error
+
+			elif error.errno == ERROR_LOST_CONNECTION_MYSQL:
+				self.connect_db()
+				self.throw_settings(user_id)
 
 			else:
 				logger.error(error)

@@ -2,8 +2,10 @@ import os
 import cv2
 import time
 import skimage
+import imageio
 import numpy as np
 import moviepy.editor as moviepy
+from telebot import types
 from random import choice
 from PIL import Image, ImageEnhance
 from pydub import AudioSegment, effects
@@ -23,12 +25,88 @@ class FunctionsBot:
             self.db_sql = DatabaseSQL()
         except Exception as error:
             logger.error(error)
+            self.send_programmer_error(error)
+
+
+    def settings(self, user_id):
+        try:
+            markup_inline = types.InlineKeyboardMarkup()
+            brightness_photo = types.InlineKeyboardButton(text = 'Яркость фотографии', callback_data = 'brightness_photo')
+            brightness_video = types.InlineKeyboardButton(text = 'Яркость видео', callback_data = 'brightness_video')
+            noise_photo = types.InlineKeyboardButton(text = 'Шум на фотографии', callback_data = 'noise_photo')
+            get_settings = types.InlineKeyboardButton(text = 'Узнать свои настройки', callback_data = 'get_settings')
+            throw_settings = types.InlineKeyboardButton(text = 'Сбросить к стандартным', callback_data = 'throw_settings')
+
+            markup_inline.add(brightness_photo)
+            markup_inline.add(brightness_video)
+            markup_inline.add(noise_photo)
+            markup_inline.add(get_settings)
+            markup_inline.add(throw_settings)
+
+            bot.send_message(user_id, 'Выберите, что настроить', reply_markup=markup_inline)
+        except Exception as error:
+            bot.send_message(user_id, ERROR_SERVER_MESSAGE)
+            logger.error(error)
+            self.send_programmer_error(error)
+
+
+    def save_settings(self, user_id, param, column):
+        try:
+            result_save = self.db_sql.save_settings(user_id, param, column)
+
+            if result_save == 1:
+                bot.send_message(user_id, "Настройки успешно сохранены")
+            else:
+                bot.send_message(user_id, ERROR_SERVER_MESSAGE)
+                logger.error(error)
+                self.send_programmer_error(error)
+
+        except Exception as error:
+            bot.send_message(user_id, ERROR_SERVER_MESSAGE)
+            logger.error(error)
+            self.send_programmer_error(error)
+
+
+    def get_settings(self, user_id):
+        try:
+            list_settings = self.db_sql.get_all_settings(user_id)
+            
+            if type(list_settings) == list and len(list_settings) == 1:
+                list_settings = list_settings[0]
+                answer_messsage = GET_SETTINGS.replace(REPLACE_SYMBOLS_1, NAME_SETTINGS[list_settings[0]])
+                answer_messsage = answer_messsage.replace(REPLACE_SYMBOLS_2, NAME_SETTINGS[list_settings[1]])
+                answer_messsage = answer_messsage.replace(REPLACE_SYMBOLS_3, NAME_SETTINGS[list_settings[2]])
+                
+                bot.send_message(user_id, answer_messsage)
+            else:
+                bot.send_message(user_id, ERROR_SERVER_MESSAGE)
+                logger.error(error)
+                self.send_programmer_error(error)
+        except Exception as error:
+            bot.send_message(user_id, ERROR_SERVER_MESSAGE)
+            logger.error(error)
+            self.send_programmer_error(error)
+
+
+    def throw_settings(self, user_id):
+        try:
+            result_throw = self.db_sql.throw_settings(user_id)
+            
+            if result_throw == 1:
+                bot.send_message(user_id, "Настройки успешно сброшены до стандартных")
+            else:
+                bot.send_message(user_id, ERROR_SERVER_MESSAGE)
+                logger.error(error)
+                self.send_programmer_error(error)
+        except Exception as error:
+            bot.send_message(user_id, ERROR_SERVER_MESSAGE)
+            logger.error(error)
+            self.send_programmer_error(error)
 
 
     def else_answer(self, user_id):
         try:
-            choice_text = ('Меня еще этому не научили', 'Я не знаю про что вы', 'У меня нет ответа', 'Я еще этого не умею', 'Беспонятия про что вы')
-            bot.send_message(user_id, choice(choice_text))
+            bot.send_message(user_id, choice(CHOICE_TEXT))
         except Exception as error:
             bot.send_message(user_id, ERROR_SERVER_MESSAGE)
             logger.error(error)
@@ -59,52 +137,47 @@ class FunctionsBot:
             result_clean = self.clean_metadata_photo(path_img)
             if result_clean != 1:
                 bot.send_message(message.from_user.id, ERROR_SERVER_MESSAGE)
-                self.send_programmer_error(result_clean)
+                self.delete_photo(path_img, name_img, type_photo)
                 return
 
-            result_noise = self.noise_photo(path_img)
+            result_noise = self.noise_photo(path_img, message.from_user.id)
             if result_noise != 1:
                 bot.send_message(message.from_user.id, ERROR_SERVER_MESSAGE)
-                self.send_programmer_error(result_noise)
+                self.delete_photo(path_img, name_img, type_photo)
                 return
 
-            #result_blur = self.gaussianBlur_photo(f'{name_img}_gaussian.{type_photo}')
-            result_blur = self.medianBlur_photo(f'{name_img}_gaussian.{type_photo}')
-            #result_blur = self.gaussianBlur_photo(f'{name_img}_salt.{type_photo}')
+            #result_blur = self.gaussianBlur_photo(f'{name_img}_noise.{type_photo}')
+            result_blur = self.medianBlur_photo(f'{name_img}_noise.{type_photo}')
             if result_blur != 1:
                 bot.send_message(message.from_user.id, ERROR_SERVER_MESSAGE)
-                self.send_programmer_error(result_blur)
+                self.delete_photo(path_img, name_img, type_photo)
                 return
 
-            #result_contrast = self.change_contrast_photo(f'{name_img}_gaussian_blur.{type_photo}')
-            result_contrast = self.change_contrast_photo(f'{name_img}_gaussian_median.{type_photo}')
-            #result_contrast = self.change_contrast_photo(f'{name_img}_salt_blur.{type_photo}')
+            result_contrast = self.change_contrast_photo(f'{name_img}_noise_blur.{type_photo}', message.from_user.id)
             if result_contrast != 1:
                 bot.send_message(message.from_user.id, ERROR_SERVER_MESSAGE)
-                self.send_programmer_error(result_contrast)
+                self.delete_photo(path_img, name_img, type_photo)
                 return
 
-            #photo = open(f'{name_img}_gaussian_blur_contrast.{type_photo}', 'rb')
-            photo = open(f'{name_img}_gaussian_median_contrast.{type_photo}', 'rb')
-            #photo = open(f'{name_img}_salt_blur_contrast.{type_photo}', 'rb')
+            photo = open(f'{name_img}_noise_blur_contrast.{type_photo}', 'rb')
             bot.send_photo(message.from_user.id, photo)
 
-            os.remove(path_img)
-            os.remove(f'{name_img}_gaussian.{type_photo}')
-            #os.remove(f'{name_img}_salt.{type_photo}')
-
-            #os.remove(f'{name_img}_gaussian_blur.{type_photo}')
-            #os.remove(f'{name_img}_gaussian_blur_contrast.{type_photo}')
-
-            os.remove(f'{name_img}_gaussian_median.{type_photo}')
-            os.remove(f'{name_img}_gaussian_median_contrast.{type_photo}')
-
-            #os.remove(f'{name_img}_salt_blur.{type_photo}')
-            #os.remove(f'{name_img}_salt_blur_contrast.{type_photo}')
+            self.delete_photo(path_img, name_img, type_photo)
+            
         except Exception as error:
             bot.send_message(message.from_user.id, ERROR_SERVER_MESSAGE)
             logger.error(error)
             self.send_programmer_error(error)
+
+    
+    def delete_photo(self, path_img, name_img, type_photo):
+        try:
+            os.remove(path_img)
+            os.remove(f'{name_img}_noise.{type_photo}')
+            os.remove(f'{name_img}_noise_blur.{type_photo}')
+            os.remove(f'{name_img}_noise_blur_contrast.{type_photo}')
+        except:
+            pass
 
 
     def unicalization_video(self, file_id, user_id):
@@ -125,19 +198,19 @@ class FunctionsBot:
             result_resize = self.resizeVideo(path_video)
             if result_resize != 1:
                 bot.send_message(user_id, ERROR_SERVER_MESSAGE)
-                self.send_programmer_error(result_resize)
+                self.delete_video(self, path_video, name_video, type_video)
                 return
 
             result_clean = self.clean_metadata_video(path_video)
             if result_clean != 1:
                 bot.send_message(user_id, ERROR_SERVER_MESSAGE)
-                self.send_programmer_error(result_clean)
+                self.delete_video(self, path_video, name_video, type_video)
                 return
 
             result_noise = self.noise_video(f'{name_video}_clean.{type_video}')
             if result_noise != 1:
                 bot.send_message(user_id, ERROR_SERVER_MESSAGE)
-                self.send_programmer_error(result_noise)
+                self.delete_video(self, path_video, name_video, type_video)
                 return
 
             #clip = moviepy.VideoFileClip(f'{name_video}_clean_salt.{type_video}')
@@ -147,19 +220,19 @@ class FunctionsBot:
             result_speed = self.speed_change_video(f'{name_video}_clean.{type_video}')
             if result_speed != 1:
                 bot.send_message(user_id, ERROR_SERVER_MESSAGE)
-                self.send_programmer_error(result_speed)
+                self.delete_video(self, path_video, name_video, type_video)
                 return
 
-            result_contrast = self.change_contrast_video(f'{name_video}_clean_speed.{type_video}')
+            result_contrast = self.change_contrast_video(f'{name_video}_clean_speed.{type_video}', user_id)
             if result_contrast != 1:
                 bot.send_message(user_id, ERROR_SERVER_MESSAGE)
-                self.send_programmer_error(result_contrast)
+                self.delete_video(self, path_video, name_video, type_video)
                 return
 
             result_compression = self.compression_video(f"{name_video}_clean_speed_contrast.{type_video}", size_video)
             
             if result_compression == 0:
-                self.send_programmer_error(result_compression)
+                bot.send_message(user_id, ERROR_SERVER_MESSAGE)
             elif result_compression == -1:
                 with open(f'{name_video}_clean_speed_contrast.{type_video}', 'rb') as video:
                     bot.send_video(user_id, video)
@@ -167,22 +240,27 @@ class FunctionsBot:
                 with open(f'{name_video}_result.{type_video}', 'rb') as video:
                     bot.send_video(user_id, video)
 
-            try:
-                os.remove(path_video)
-                os.remove(f'{name_video}_clean.{type_video}')
-                #os.remove(f'{name_video}_clean_salt.{type_video}')
-                os.remove(f'{name_video}_clean_salt_blur.{type_video}')
-                os.remove(f'{name_video}_clean_speed.{type_video}')
-                os.remove(f'{name_video}_clean_speed_contrast.{type_video}')
-                os.remove(f'{name_video}_clean.wav')
-                os.remove(f'{name_video}_clean_speed.mp3')
-                os.remove(f'{name_video}_result.{type_video}')
-            except:
-                pass
+            self.delete_video(path_video, name_video, type_video)
+
         except Exception as error:
             bot.send_message(user_id, ERROR_SERVER_MESSAGE)
             logger.error(error)
             self.send_programmer_error(error)
+
+
+    def delete_video(self, path_video, name_video, type_video):
+        try:
+            os.remove(path_video)
+            os.remove(f'{name_video}_clean.{type_video}')
+            #os.remove(f'{name_video}_clean_salt.{type_video}')
+            os.remove(f'{name_video}_clean_salt_blur.{type_video}')
+            os.remove(f'{name_video}_clean_speed.{type_video}')
+            os.remove(f'{name_video}_clean_speed_contrast.{type_video}')
+            os.remove(f'{name_video}_clean.wav')
+            os.remove(f'{name_video}_clean_speed.mp3')
+            os.remove(f'{name_video}_result.{type_video}')
+        except:
+            pass
 
 
     def clean_metadata_photo(self, path):
@@ -202,6 +280,7 @@ class FunctionsBot:
             return 1
         except Exception as error:
             logger.error(error)
+            self.send_programmer_error(error)
             return 0
 
 
@@ -213,24 +292,37 @@ class FunctionsBot:
 
             return 1
         except Exception as error:
+            self.send_programmer_error(error)
             logger.error(error)
             return 0
 
 
-    def noise_photo(self, path):
+    def noise_photo(self, path, user_id):
         try:
-            img = np.uint8(skimage.io.imread(path))
             img_name = path.split(".")[0]
             img_type = path.split(".")[1]
 
-            gauss_noiseImg = skimage.util.random_noise(img, mode='gaussian', seed=None, clip=True)
-            skimage.io.imsave(f'{img_name}_gaussian.{img_type}', img_as_ubyte(gauss_noiseImg))
+            param_noise = self.db_sql.get_settings(user_id, 'noise_photo')
+            if param_noise == None:
+                param_noise = DEFAULT_PARAM_NOISE_PHOTO
+            else:
+                param_noise = SETTINGS_PARAM[f'{param_noise}_noise_photo']
+
+            image = imageio.imread(path)
+            noise = np.random.poisson(param_noise, image.shape).astype(float)
+            imageio.imwrite(f'{img_name}_noise.{img_type}', image + noise)
+
+            #img = np.uint8(skimage.io.imread(path))
+
+            #gauss_noiseImg = skimage.util.random_noise(img, mode='gaussian', seed=None, clip=True)
+            #skimage.io.imsave(f'{img_name}_noise.{img_type}', img_as_ubyte(gauss_noiseImg))
 
             #salt_noiseImg = skimage.util.random_noise(img, mode='salt', seed=None, clip=True)
-            #skimage.io.imsave(f'{img_name}_salt.{img_type}', salt_noiseImg)
+            #skimage.io.imsave(f'{img_name}_noise.{img_type}', img_as_ubyte(salt_noiseImg))
             return 1
         except Exception as error:
             logger.error(error)
+            self.send_programmer_error(error)
             return 0
 
 
@@ -279,6 +371,7 @@ class FunctionsBot:
             cap.release()
             return 1
         except Exception as error:
+            self.send_programmer_error(error)
             logger.error(error)
             return 0
 
@@ -290,11 +383,12 @@ class FunctionsBot:
             img_type = path.split(".")[1]
 
             median = cv2.medianBlur(img.astype('float32'), 1)
-            cv2.imwrite(f'{img_name}_median.{img_type}', median)
+            cv2.imwrite(f'{img_name}_blur.{img_type}', median)
 
             return 1
         except Exception as error:
             logger.error(error)
+            self.send_programmer_error(error)
             return 0
 
 
@@ -310,6 +404,7 @@ class FunctionsBot:
             return 1
         except Exception as error:
             logger.error(error)
+            self.send_programmer_error(error)
             return 0
 
 
@@ -317,11 +412,12 @@ class FunctionsBot:
         try:
             return gaussian(path.astype(float), sigma=2, truncate=1/4)
         except Exception as error:
+            self.send_programmer_error(error)
             logger.error(error)
             return 0
 
 
-    def change_contrast_photo(self, path):
+    def change_contrast_photo(self, path, user_id):
         try:
             img = Image.open(path)
             img_name = path.split(".")[0]
@@ -331,31 +427,49 @@ class FunctionsBot:
             sharpness = ImageEnhance.Sharpness(img) # резкость
             brightness = ImageEnhance.Brightness(img) # яркость
 
-            im_output = contrast.enhance(0.8) 
+            param_brightness = self.db_sql.get_settings(user_id, 'brightness_photo')
+            if param_brightness == None:
+                param_brightness = DEFAULT_PARAM_BRIGHTNESS_PHOTO
+            else:
+                param_brightness = SETTINGS_PARAM[f'{param_brightness}_brightness_photo']
+
+            im_output = contrast.enhance(1.2) 
             #im_output = sharpness.enhance(0.05)
-            im_output = brightness.enhance(0.8) 
+            im_output = brightness.enhance(param_brightness) 
             im_output.save(f'{img_name}_contrast.{img_type}')
 
             return 1
         except Exception as error:
             logger.error(error)
+            self.send_programmer_error(error)
             return 0
 
 
-    def change_contrast_video(self, path):
+    def change_contrast_video(self, path, user_id):
         try:
             name_video = path.split(".")[0]
             type_video = path.split(".")[-1]
 
-            contrast = 0.9
+            contrast = 1.2
             gamma = 1.3
-            brightness = 0
             saturation = 1
 
-            os.system(f"ffmpeg -i {path} -vf eq=contrast={contrast}:gamma={gamma}:brightness={brightness}:saturation={saturation} -c:a copy {name_video}_contrast.{type_video}")
+            param_brightness = self.db_sql.get_settings(user_id, 'brightness_video')
+            if param_brightness == None:
+                param_brightness = DEFAULT_PARAM_BRIGHTNESS_VIDEO
+            else:
+                if param_brightness == 'low':
+                    gamma = 0.7
+                elif param_brightness == 'high':
+                    gamma = 1.6
+
+                param_brightness = SETTINGS_PARAM[f'{param_brightness}_brightness_video']
+
+            os.system(f"ffmpeg -i {path} -vf eq=contrast={contrast}:gamma={gamma}:brightness={param_brightness}:saturation={saturation} -c:a copy {name_video}_contrast.{type_video}")
 
             return 1
         except Exception as error:
+            self.send_programmer_error(error)
             logger.error(error)
             return 0
 
@@ -382,6 +496,7 @@ class FunctionsBot:
 
             return 1
         except Exception as error:
+            self.send_programmer_error(error)
             logger.error(error)
             return 0
 
@@ -403,6 +518,7 @@ class FunctionsBot:
                 os.system(f"ffmpeg -i {path} -vf scale=1280:720 {name_video}.{type_video}")
             return 1
         except Exception as error:
+            self.send_programmer_error(error)
             logger.error(error)
             return 0
 
@@ -420,6 +536,7 @@ class FunctionsBot:
 
             return -1
         except Exception as error:
+            self.send_programmer_error(error)
             logger.error(error)
             return 0
 

@@ -13,7 +13,54 @@ def answer(call):
     try:
         user_id = call.from_user.id
 
-        if 'statistic' in call.data:
+        if "brightness" in call.data or "noise" in call.data:
+            if call.data == 'brightness_photo':
+                markup_inline = types.InlineKeyboardMarkup()
+                low = types.InlineKeyboardButton(text = 'Низкая', callback_data = 'low_brightness_photo')
+                middle = types.InlineKeyboardButton(text = 'Средняя (по умолчанию)', callback_data = 'middle_brightness_photo')
+                high = types.InlineKeyboardButton(text = 'Высокая', callback_data = 'high_brightness_photo')
+
+                markup_inline.add(low)
+                markup_inline.add(middle)
+                markup_inline.add(high)
+
+                bot.send_message(user_id, 'Выберите настройку', reply_markup=markup_inline)
+
+            elif call.data == 'brightness_video':
+                markup_inline = types.InlineKeyboardMarkup()
+                low = types.InlineKeyboardButton(text = 'Низкая', callback_data = 'low_brightness_video')
+                middle = types.InlineKeyboardButton(text = 'Средняя (по умолчанию)', callback_data = 'middle_brightness_video')
+                high = types.InlineKeyboardButton(text = 'Высокая', callback_data = 'high_brightness_video')
+
+                markup_inline.add(low)
+                markup_inline.add(middle)
+                markup_inline.add(high)
+
+                bot.send_message(user_id, 'Выберите настройку', reply_markup=markup_inline)
+
+            elif call.data == 'noise_photo':
+                markup_inline = types.InlineKeyboardMarkup()
+                little = types.InlineKeyboardButton(text = 'Маленький', callback_data = 'little_noise_photo')
+                middle = types.InlineKeyboardButton(text = 'Средний (по умолчанию)', callback_data = 'middle_noise_photo')
+                big = types.InlineKeyboardButton(text = 'Большой', callback_data = 'big_noise_photo')
+
+                markup_inline.add(little)
+                markup_inline.add(middle)
+                markup_inline.add(big)
+
+                bot.send_message(user_id, 'Выберите настройку', reply_markup=markup_inline)
+
+            else:
+                param, characteristic, type_file = call.data.split("_")
+                func.save_settings(user_id, param, f'{characteristic}_{type_file}')
+
+        elif call.data == 'get_settings':
+            func.get_settings(user_id)
+
+        elif call.data == 'throw_settings':
+            func.throw_settings(user_id)
+
+        elif call.data == 'statistic':
             func.statistic(user_id)
 
         elif "mailing" in call.data:
