@@ -1,6 +1,6 @@
 # unicalization-bot 
 
-A bot for unifying photos and videos
+A [bot](https://t.me/Uniquely495_bot) for unifying photos and videos
 
 ![Python][python-version]
 
