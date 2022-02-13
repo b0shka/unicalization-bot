@@ -58,9 +58,10 @@ class FunctionsBot:
                 bot.send_message(user_id, "Настройки успешно сохранены")
             else:
                 bot.send_message(user_id, ERROR_SERVER_MESSAGE)
-                logger.error(error)
-                self.send_programmer_error(error)
+                logger.error(result_save)
+                self.send_programmer_error(result_save)
 
+            logger.info(f"Сохранение настроек {user_id}")
         except Exception as error:
             bot.send_message(user_id, ERROR_SERVER_MESSAGE)
             logger.error(error)
@@ -70,18 +71,26 @@ class FunctionsBot:
     def get_settings(self, user_id):
         try:
             list_settings = self.db_sql.get_all_settings(user_id)
+            if list_settings == None:
+                list_settings = self.db_sql.get_all_settings(user_id)
             
             if type(list_settings) == list and len(list_settings) == 1:
                 list_settings = list_settings[0]
-                answer_messsage = GET_SETTINGS.replace(REPLACE_SYMBOLS_1, NAME_SETTINGS[list_settings[0]])
-                answer_messsage = answer_messsage.replace(REPLACE_SYMBOLS_2, NAME_SETTINGS[list_settings[1]])
-                answer_messsage = answer_messsage.replace(REPLACE_SYMBOLS_3, NAME_SETTINGS[list_settings[2]])
                 
-                bot.send_message(user_id, answer_messsage)
+                if len(list_settings) != 0:
+                    answer_messsage = GET_SETTINGS.replace(REPLACE_SYMBOLS_1, NAME_SETTINGS[list_settings[0]])
+                    answer_messsage = answer_messsage.replace(REPLACE_SYMBOLS_2, NAME_SETTINGS[list_settings[1]])
+                    answer_messsage = answer_messsage.replace(REPLACE_SYMBOLS_3, NAME_SETTINGS[list_settings[2]])
+                    
+                    bot.send_message(user_id, answer_messsage)
+                else:
+                    bot.send_message(user_id, "Данные в БД еще не успели сохраниться, попробуйте еще раз")
             else:
                 bot.send_message(user_id, ERROR_SERVER_MESSAGE)
-                logger.error(error)
-                self.send_programmer_error(error)
+                logger.error(list_settings)
+                self.send_programmer_error(list_settings)
+                
+            logger.info(f"Получение настроек {user_id}")
         except Exception as error:
             bot.send_message(user_id, ERROR_SERVER_MESSAGE)
             logger.error(error)
@@ -96,8 +105,10 @@ class FunctionsBot:
                 bot.send_message(user_id, "Настройки успешно сброшены до стандартных")
             else:
                 bot.send_message(user_id, ERROR_SERVER_MESSAGE)
-                logger.error(error)
-                self.send_programmer_error(error)
+                logger.error(result_throw)
+                self.send_programmer_error(result_throw)
+                
+            logger.info(f"Сброс настроек {user_id}")
         except Exception as error:
             bot.send_message(user_id, ERROR_SERVER_MESSAGE)
             logger.error(error)
@@ -116,6 +127,7 @@ class FunctionsBot:
     def unicalization_photo(self, message, file_id):
         try:
             bot.send_message(message.from_user.id, "Обработка фотографии началась")
+            logger.info(f"Началась уникализация фото {message.from_user.id}")
             file_info = bot.get_file(file_id)
             file_size = file_info.file_size
 
@@ -126,6 +138,7 @@ class FunctionsBot:
             downloaded_file = bot.download_file(file_info.file_path)
             with open(path_img, 'wb') as new_file:
                 new_file.write(downloaded_file)
+            logger.info(f"Скачивание фото {message.from_user.id}")
 
             if (file_size // 1048576) > 4:
                 original_image = Image.open(path_img)
@@ -133,14 +146,17 @@ class FunctionsBot:
 
                 original_image.thumbnail((width_img * 0.6, height_img * 0.6), Image.ANTIALIAS)
                 original_image.save(path_img)
+                logger.info(f"Сжатие фото {message.from_user.id}")
 
             result_clean = self.clean_metadata_photo(path_img)
+            logger.info(f"Удаление метаданных на фото {message.from_user.id}")
             if result_clean != 1:
                 bot.send_message(message.from_user.id, ERROR_SERVER_MESSAGE)
                 self.delete_photo(path_img, name_img, type_photo)
                 return
 
             result_noise = self.noise_photo(path_img, message.from_user.id)
+            logger.info(f"Добавление шума на фото {message.from_user.id}")
             if result_noise != 1:
                 bot.send_message(message.from_user.id, ERROR_SERVER_MESSAGE)
                 self.delete_photo(path_img, name_img, type_photo)
@@ -148,12 +164,14 @@ class FunctionsBot:
 
             #result_blur = self.gaussianBlur_photo(f'{name_img}_noise.{type_photo}')
             result_blur = self.medianBlur_photo(f'{name_img}_noise.{type_photo}')
+            logger.info(f"Добавление блюра на фото {message.from_user.id}")
             if result_blur != 1:
                 bot.send_message(message.from_user.id, ERROR_SERVER_MESSAGE)
                 self.delete_photo(path_img, name_img, type_photo)
                 return
 
             result_contrast = self.change_contrast_photo(f'{name_img}_noise_blur.{type_photo}', message.from_user.id)
+            logger.info(f"Изменение яркости на фото {message.from_user.id}")
             if result_contrast != 1:
                 bot.send_message(message.from_user.id, ERROR_SERVER_MESSAGE)
                 self.delete_photo(path_img, name_img, type_photo)
@@ -161,8 +179,10 @@ class FunctionsBot:
 
             photo = open(f'{name_img}_noise_blur_contrast.{type_photo}', 'rb')
             bot.send_photo(message.from_user.id, photo)
+            logger.info(f"Отправка обработанного фото {message.from_user.id}")
 
             self.delete_photo(path_img, name_img, type_photo)
+            logger.info(f"Удаление не нужных фотографий {message.from_user.id}")
             
         except Exception as error:
             bot.send_message(message.from_user.id, ERROR_SERVER_MESSAGE)
@@ -183,6 +203,7 @@ class FunctionsBot:
     def unicalization_video(self, file_id, user_id):
         try:
             bot.send_message(user_id, "Обработка вашего видео началась")
+            logger.info(f"Началась уникализация видео {user_id}")
             file_info = bot.get_file(file_id)
 
             type_video = file_info.file_path.split(".")[-1]
@@ -192,22 +213,26 @@ class FunctionsBot:
             downloaded_file = bot.download_file(file_info.file_path)
             with open(path_video, 'wb') as new_file:
                 new_file.write(downloaded_file)
+            logger.info(f"Скачивание видео {user_id}")
 
             size_video = os.path.getsize(path_video)
 
             result_resize = self.resizeVideo(path_video)
+            logger.info(f"Изменение размера видео {user_id}")
             if result_resize != 1:
                 bot.send_message(user_id, ERROR_SERVER_MESSAGE)
                 self.delete_video(self, path_video, name_video, type_video)
                 return
 
             result_clean = self.clean_metadata_video(path_video)
+            logger.info(f"Удаление метаданных на видео {user_id}")
             if result_clean != 1:
                 bot.send_message(user_id, ERROR_SERVER_MESSAGE)
                 self.delete_video(self, path_video, name_video, type_video)
                 return
 
             result_noise = self.noise_video(f'{name_video}_clean.{type_video}')
+            logger.info(f"Добавление шума на видео {user_id}")
             if result_noise != 1:
                 bot.send_message(user_id, ERROR_SERVER_MESSAGE)
                 self.delete_video(self, path_video, name_video, type_video)
@@ -218,18 +243,21 @@ class FunctionsBot:
             #clip_blurred.write_videofile(f"{name_video}_clean_salt_blur.{type_video}")
 
             result_speed = self.speed_change_video(f'{name_video}_clean.{type_video}')
+            logger.info(f"Ускорение аудио на видео {user_id}")
             if result_speed != 1:
                 bot.send_message(user_id, ERROR_SERVER_MESSAGE)
                 self.delete_video(self, path_video, name_video, type_video)
                 return
 
             result_contrast = self.change_contrast_video(f'{name_video}_clean_speed.{type_video}', user_id)
+            logger.info(f"Изменение яркости на видео {user_id}")
             if result_contrast != 1:
                 bot.send_message(user_id, ERROR_SERVER_MESSAGE)
                 self.delete_video(self, path_video, name_video, type_video)
                 return
 
             result_compression = self.compression_video(f"{name_video}_clean_speed_contrast.{type_video}", size_video)
+            logger.info(f"Компрессия видео если она нужна {user_id}")
             
             if result_compression == 0:
                 bot.send_message(user_id, ERROR_SERVER_MESSAGE)
@@ -241,6 +269,7 @@ class FunctionsBot:
                     bot.send_video(user_id, video)
 
             self.delete_video(path_video, name_video, type_video)
+            logger.info(f"Удаление не нужных видео {user_id}")
 
         except Exception as error:
             bot.send_message(user_id, ERROR_SERVER_MESSAGE)

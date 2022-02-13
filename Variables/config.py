@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 dotenv_path = '../.env'
 load_dotenv(dotenv_path)
 
-TOKEN = os.getenv("TOKEN_UNICALIZATION")
+TOKEN = os.getenv("TOKEN_TEST")
 bot = telebot.TeleBot(TOKEN)
 
 USER = "q"

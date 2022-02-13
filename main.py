@@ -65,13 +65,7 @@ def panel(message: types.Message):
 			markup_inline.add(logs)
 			bot.send_message(message.from_user.id, 'Админ панель', reply_markup=markup_inline)
 		else:
-			req_bot.result_message(message.text, message)
-
-			user = get_data_user(message)
-			if user != 0:
-				result_add = db_sql.add_user(user)
-				if result_add != 1 and result_add != None:
-					func.send_programmer_error(result_add)
+			answer_message(message)
 	except Exception as error:
 		logger.error(error)
 		func.send_programmer_error(error)
@@ -87,11 +81,13 @@ def unicalizing_photo(message: types.Message):
 			func.unicalization_photo(message, file_id)
 
 			result_add = db_sql.add_file_id(message.from_user.id, file_id)
+			logger.info(f"Запись file_id фотографии в БД {message.from_user.id}")
 			if result_add != 1:
 				logger.error(result_add)
 				func.send_programmer_error(result_add)
 
 			result_add = db_sql.update_date_unicalization(message.from_user.id)
+			logger.info(f"Обновление даты последней уникализации фото в БД {message.from_user.id}")
 			if result_add != 1:
 				logger.error(result_add)
 				func.send_programmer_error(result_add)
@@ -148,11 +144,13 @@ def unicalizing_document(message: types.Message):
 				func.unicalization_photo(message, file_id)
 
 				result_add = db_sql.add_file_id(message.from_user.id, file_id)
+				logger.info(f"Запись file_id фотографии в БД {message.from_user.id}")
 				if result_add != 1:
 					logger.error(result_add)
 					func.send_programmer_error(result_add)
 
 				result_add = db_sql.update_date_unicalization(message.from_user.id)
+				logger.info(f"Обновление даты последней уникализации фото в БД {message.from_user.id}")
 				if result_add != 1:
 					logger.error(result_add)
 					func.send_programmer_error(result_add)
@@ -193,10 +191,12 @@ def processing_video(message, file_id):
 
 		if status_user == 0:
 			result_add = db_sql.add_file_id(message.from_user.id, file_id)
+			logger.info(f"Запись file_id видео в БД {message.from_user.id}")
 
 			if result_add == 1:
 				count_ = len(db_sql.get_users_using())
 				result_change = db_sql.change_status_using(message.from_user.id, 1)
+				logger.info(f"Изменение статуса использования и даты в БД {message.from_user.id}")
 
 				if result_change == 1:
 					bot.send_message(message.from_user.id, f"Ваше место в очереди: {count_+1}")

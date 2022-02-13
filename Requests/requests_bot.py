@@ -19,7 +19,7 @@ class RequestsBot:
                 bot.send_message(message.from_user.id, UNOCALIZATION)
 
             elif search == "информация":
-                bot.send_message(message.from_user.id, INFORMATION)
+                bot.send_message(message.from_user.id, INFORMATION, disable_web_page_preview=True)
 
             elif search == "настройки":
                 self.func_bot.settings(message.from_user.id)

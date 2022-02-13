@@ -1,0 +1,11 @@
+imageio==2.15.0
+imageio-ffmpeg==0.4.5
+moviepy==1.0.3
+mysql-connector==2.2.9
+mysql-connector-python==8.0.28
+numpy==1.22.2
+opencv-python==4.5.5.62
+Pillow==9.0.1
+pyTelegramBotAPI==4.4.0
+python-dotenv==0.19.2
+scikit-image==0.19.1
